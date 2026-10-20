@@ -1,0 +1,39 @@
+{
+  "tickers": ["VET.TO", "VET", "AMD", "TM"],
+  "groups": {
+    "All": ["VET.TO", "VET", "AMD", "TM"],
+    "Tech": ["AMD"],
+    "Energy": ["VET.TO", "VET"],
+    "Auto": ["TM"]
+  },
+  "columns": [
+    {"key": "currentPrice", "label": "Price", "format": "currency"},
+    {"key": "currency", "label": "Curr", "format": "text"},
+    {"key": "marketCap", "label": "Mkt Cap", "format": "bignum"},
+    {"key": "trailingPE", "label": "Trailing P/E", "format": "ratio"},
+    {"key": "forwardPE", "label": "Forward P/E", "format": "ratio"},
+    {"key": "trailingEps", "label": "EPS", "format": "number"},
+    {"key": "dividendYield", "label": "Div Yield", "format": "percent"},
+    {"key": "fiftyTwoWeekLow", "label": "52W Low", "format": "currency"},
+    {"key": "fiftyTwoWeekHigh", "label": "52W High", "format": "currency"},
+    {"key": "beta", "label": "Beta", "format": "number"},
+    {"key": "profitMargins", "label": "Profit Margin", "format": "percent"},
+    {"key": "debtToEquity", "label": "Debt/Eq", "format": "ratio"},
+    {"key": "targetMeanPrice", "label": "Target Price", "format": "currency"}
+  ],
+  "presets": {
+    "Default": ["currentPrice", "currency", "marketCap", "trailingPE", "forwardPE", "trailingEps", "dividendYield"],
+    "Valuation": ["currentPrice", "marketCap", "enterpriseValue", "trailingPE", "forwardPE", "priceToBook", "enterpriseToEbitda"],
+    "Profitability": ["profitMargins", "operatingMargins", "grossMargins", "returnOnEquity", "returnOnAssets", "ebitda"],
+    "Balance Sheet": ["totalCash", "totalDebt", "debtToEquity", "currentRatio", "quickRatio", "freeCashflow"],
+    "Dividends": ["dividendRate", "dividendYield", "trailingAnnualDividendYield", "payoutRatio", "dividendDate", "exDividendDate"]
+  },
+  "formulas": [],
+  "benchmarks": {
+    "Oil & Gas E&P": {
+      "asOf": "2024-01-01",
+      "source": "Manual Entry Example",
+      "values": { "trailingPE": 8.5, "profitMargins": 0.22, "debtToEquity": 45.0 }
+    }
+  }
+}
