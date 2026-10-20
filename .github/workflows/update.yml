@@ -1,0 +1,87 @@
+name: Update Stock Data
+
+on:
+  schedule:
+    # 6:00 AM and 6:00 PM America/Toronto across both EDT (UTC-4) and EST (UTC-5)
+    - cron: '0 10,11,22,23 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: stock-update-pipeline
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Timezone and Gate Check
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          TORONTO_HOUR=$(TZ="America/Toronto" date +%H)
+          echo "Current America/Toronto hour: $TORONTO_HOUR"
+          if [ "$TORONTO_HOUR" -eq 6 ] || [ "$TORONTO_HOUR" -eq 18 ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "Skipping cron run (Toronto hour is not 06 or 18)."
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check Out Repository
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set Up Python
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance
+
+      - name: Run Data Fetcher
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          python fetch_data.py
+
+      - name: Commit and Push (Conflict-Safe)
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          mkdir -p /tmp/stock_payload
+          cp -r data /tmp/stock_payload/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Sync and push attempt $i of $MAX_RETRIES..."
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf data
+            cp -r /tmp/stock_payload/data .
+            git add data/
+            if git diff --staged --quiet; then
+              echo "No data changes detected. Nothing to push."
+              exit 0
+            fi
+            git commit -m "Auto-update stock data [skip ci]"
+            if git push origin main; then
+              echo "Successfully pushed update."
+              exit 0
+            fi
+            echo "Push rejected. Retrying in 4 seconds..."
+            sleep 4
+          done
+          echo "Push failed after $MAX_RETRIES attempts."
+          exit 1
