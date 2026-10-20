@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v3</title>
+<title>Stock Analysis v4</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
@@ -31,9 +31,6 @@
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
     padding: 6px 10px; border-radius: var(--radius); font-size: 13px;
   }
-  .banner { padding: 8px 12px; border-radius: var(--radius); font-size: 12px; margin-bottom: 10px; display: none; }
-  .banner.warn { background: rgba(248,113,113,0.15); border: 1px solid var(--red); color: var(--red); display: block; }
-  .banner.info { background: rgba(56,189,248,0.15); border: 1px solid var(--primary); color: var(--primary); display: block; }
   .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 20px; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: right; }
@@ -66,8 +63,6 @@
     <button onclick="openModal('modal-formula')">+ Formula</button>
   </div>
 </header>
-
-<div id="banner-area"></div>
 
 <div class="toolbar">
   <input type="text" id="search-box" placeholder="Search symbol..." oninput="renderTable()">
@@ -102,7 +97,7 @@
     <input type="text" id="new-ticker-input" placeholder="e.g. NVDA or ENB.TO" style="width:100%; margin-bottom: 10px; text-transform:uppercase;">
     <div style="display:flex; justify-content:flex-end; gap:8px;">
       <button onclick="closeModal('modal-add-ticker')">Cancel</button>
-      <button class="primary" onclick="addTicker()">Add Ticker</button>
+      <button class="primary" id="btn-confirm-add" onclick="addTicker()">Add Ticker</button>
     </div>
   </div>
 </div>
@@ -112,8 +107,7 @@
   <div class="modal">
     <h2>Add Custom Formula</h2>
     <input type="text" id="formula-name" placeholder="Column Name (e.g. Upside %)" style="width:100%; margin-bottom:8px;">
-    <input type="text" id="formula-expr" placeholder="e.g. (targetMeanPrice - currentPrice) / currentPrice * 100" style="width:100%; margin-bottom:8px;" oninput="previewFormula()">
-    <div id="formula-preview" style="font-size:12px; color:var(--text-muted); margin-bottom:12px; min-height:18px;"></div>
+    <input type="text" id="formula-expr" placeholder="e.g. (targetMeanPrice - currentPrice) / currentPrice * 100" style="width:100%; margin-bottom:8px;">
     <div style="display:flex; justify-content:flex-end; gap:8px;">
       <button onclick="closeModal('modal-formula')">Cancel</button>
       <button class="primary" onclick="saveFormula()">Save Formula</button>
@@ -137,9 +131,9 @@
   <summary style="cursor:pointer; font-weight:600;">GitHub Token & Setup (One-Time Per Device)</summary>
   <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
     <p style="font-size:12px; color:var(--text-muted);">
-      Enter your repository path and fine-grained token. Stored locally in this browser only.
+      Personal access token (fine-grained, Contents: Read/Write, Actions: Read/Write). Saved locally in this browser.
     </p>
-    <input type="text" id="github-repo" placeholder="owner/repo-name (e.g. peowow/stock-analysis)">
+    <input type="text" id="github-repo" placeholder="peowow/stock-analysis">
     <input type="text" id="github-token" placeholder="github_pat_...">
     <div style="display:flex; gap:8px;">
       <button class="primary" type="button" onclick="saveGitHubConfig()">Save Token</button>
@@ -170,7 +164,13 @@ let CONFIG = {
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
     { key: "forwardPE", label: "Forward P/E", format: "ratio" },
     { key: "trailingEps", label: "EPS", format: "number" },
-    { key: "dividendYield", label: "Div Yield", format: "percent" }
+    { key: "dividendYield", label: "Div Yield", format: "percent" },
+    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
+    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
+    { key: "beta", label: "Beta", format: "number" },
+    { key: "profitMargins", label: "Profit Margin", format: "percent" },
+    { key: "debtToEquity", label: "Debt/Eq", format: "ratio" },
+    { key: "targetMeanPrice", label: "Target Price", format: "currency"}
   ],
   presets: {},
   formulas: []
@@ -196,22 +196,31 @@ function setStored(key, val) {
   try { localStorage.setItem(key, val); } catch (e) {}
 }
 
-function saveGitHubConfig() {
+function toBase64Unicode(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+    return String.fromCharCode(parseInt(p1, 16));
+  }));
+}
+
+async function saveGitHubConfig() {
   const repoInput = document.getElementById('github-repo').value.trim();
   const tokenInput = cleanToken(document.getElementById('github-token').value);
   const status = document.getElementById('token-status');
 
   if (!repoInput || !tokenInput) {
     status.style.color = "var(--red)";
-    status.innerText = "Please fill in both the repository name and the token.";
+    status.innerText = "Please fill in both the repository and the token.";
     return;
   }
 
   setStored('sa_repo', repoInput);
   setStored('sa_token', tokenInput);
+
   status.style.color = "var(--green)";
-  status.innerText = "✓ Credentials saved to this device! Reloading data...";
-  init();
+  status.innerText = "✓ Credentials saved successfully!";
+  await loadConfig();
+  await loadData();
+  renderTable();
 }
 
 function clearGitHubConfig() {
@@ -219,7 +228,7 @@ function clearGitHubConfig() {
     localStorage.removeItem('sa_token');
     localStorage.removeItem('sa_repo');
   } catch(e) {}
-  document.getElementById('github-repo').value = "";
+  document.getElementById('github-repo').value = "peowow/stock-analysis";
   document.getElementById('github-token').value = "";
   document.getElementById('token-status').style.color = "var(--text-muted)";
   document.getElementById('token-status').innerText = "Credentials cleared.";
@@ -227,10 +236,10 @@ function clearGitHubConfig() {
 
 async function loadData() {
   const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo');
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
   const statusEl = document.getElementById('update-status');
 
-  let urls = ['data/data.json?t=' + Date.now()];
+  let urls = [`https://raw.githubusercontent.com/${repo}/main/data/data.json?t=${Date.now()}`];
   if (token && repo) {
     urls.unshift(`https://api.github.com/repos/${repo}/contents/data/data.json`);
   }
@@ -248,14 +257,13 @@ async function loadData() {
       }
     } catch (e) {}
   }
-  statusEl.innerText = 'Showing local tickers (Click ↻ Refresh Now to sync)';
 }
 
 async function loadConfig() {
   const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo');
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
 
-  let urls = ['config.json?t=' + Date.now()];
+  let urls = [`https://raw.githubusercontent.com/${repo}/main/config.json?t=${Date.now()}`];
   if (token && repo) {
     urls.unshift(`https://api.github.com/repos/${repo}/contents/config.json`);
   }
@@ -290,56 +298,6 @@ function formatVal(val, format, curr) {
   return cleanString(String(val));
 }
 
-function safeEvalFormula(expr, row) {
-  try {
-    let tokens = expr.match(/[A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|[\+\-\*\/\^\(\)]/g);
-    if (!tokens) return null;
-    let pos = 0;
-    function parsePrimary() {
-      let t = tokens[pos++];
-      if (!t) throw new Error();
-      if (t === '(') {
-        let v = parseExpr();
-        if (tokens[pos++] !== ')') throw new Error();
-        return v;
-      }
-      if (/^\d+\.?\d*$/.test(t)) return parseFloat(t);
-      if (/^[A-Za-z_]/.test(t)) {
-        let fieldVal = row[t];
-        if (fieldVal === undefined || fieldVal === null) return NaN;
-        return Number(fieldVal);
-      }
-      throw new Error();
-    }
-    function parseFactor() {
-      let v = parsePrimary();
-      while (tokens[pos] === '^') { pos++; v = Math.pow(v, parseFactor()); }
-      return v;
-    }
-    function parseTerm() {
-      let v = parseFactor();
-      while (tokens[pos] === '*' || tokens[pos] === '/') {
-        let op = tokens[pos++];
-        let r = parseFactor();
-        v = (op === '*') ? v * r : (r === 0 ? NaN : v / r);
-      }
-      return v;
-    }
-    function parseExpr() {
-      let v = parseTerm();
-      while (tokens[pos] === '+' || tokens[pos] === '-') {
-        let op = tokens[pos++];
-        v = (op === '+') ? v + parseTerm() : v - parseTerm();
-      }
-      return v;
-    }
-    let res = parseExpr();
-    return Number.isFinite(res) ? res : null;
-  } catch (e) {
-    return null;
-  }
-}
-
 function renderTable() {
   const thead = document.getElementById('table-head');
   const tbody = document.getElementById('table-body');
@@ -347,7 +305,7 @@ function renderTable() {
 
   let cols = [...(CONFIG.columns || [])];
   for (const f of (CONFIG.formulas || [])) {
-    cols.push({ key: f.name, label: f.name, format: "number", isFormula: true, expr: f.expr });
+    cols.push({ key: f.name, label: f.name, format: "number" });
   }
 
   let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')">Symbol</th>';
@@ -362,9 +320,6 @@ function renderTable() {
     if (search && !sym.toUpperCase().includes(search)) continue;
     const tickerData = (DATA.tickers && DATA.tickers[sym]) || {};
     let rowObj = { symbol: sym, ...tickerData };
-    for (const f of (CONFIG.formulas || [])) {
-      rowObj[f.name] = safeEvalFormula(f.expr, tickerData);
-    }
     rows.push(rowObj);
   }
 
@@ -387,7 +342,7 @@ function renderTable() {
     }
     bodyHtml += '</tr>';
   }
-  tbody.innerHTML = bodyHtml || '<tr><td colspan="15" style="text-align:center; padding:20px;">No tickers found matching search.</td></tr>';
+  tbody.innerHTML = bodyHtml || '<tr><td colspan="15" style="text-align:center; padding:20px;">No tickers to display.</td></tr>';
 }
 
 function sortBy(key) {
@@ -398,22 +353,26 @@ function sortBy(key) {
 
 async function triggerRefresh() {
   const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo');
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
   if (!token || !repo) {
-    alert("Please enter and save your repo & token in the setup box at the bottom.");
+    alert("Please enter and save your token in the setup box first.");
     return;
   }
   const btn = document.getElementById('btn-refresh');
   btn.disabled = true;
-  btn.innerText = "Starting update...";
+  btn.innerText = "Dispatching...";
 
   try {
     const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update.yml/dispatches`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+      headers: { 
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ ref: 'main' })
     });
-    if (!res.ok) throw new Error("HTTP " + res.status + " (Check token permissions)");
+    if (!res.ok) throw new Error("HTTP " + res.status);
 
     let currentUpdated = DATA.updated;
     btn.innerText = "Running (1-2 min)...";
@@ -437,121 +396,76 @@ async function triggerRefresh() {
 
 async function saveToRepo(newConfig) {
   const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo');
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
   if (!token || !repo) {
-    alert("Token not found. Change saved in browser only for now.");
-    CONFIG = newConfig;
-    renderTable();
-    return;
+    alert("Token required to save to GitHub.");
+    return false;
   }
   try {
-    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json?ref=main`, {
+      headers: { 
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'application/vnd.github.v3+json' 
+      }
     });
+    if (!getRes.ok) throw new Error("Could not fetch current config. HTTP " + getRes.status);
     const fileData = await getRes.json();
     const sha = fileData.sha;
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
+
+    const jsonString = JSON.stringify(newConfig, null, 2);
+    const content = toBase64Unicode(jsonString);
+
     const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
       method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
-      body: JSON.stringify({ message: "Update config", content, sha })
+      headers: { 
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        message: "Update config.json from web app", 
+        content: content, 
+        sha: sha,
+        branch: "main"
+      })
     });
-    if (putRes.ok) {
-      CONFIG = newConfig;
-      renderTable();
-    } else {
-      throw new Error("HTTP " + putRes.status);
-    }
+
+    if (!putRes.ok) throw new Error("Save rejected by GitHub: HTTP " + putRes.status);
+    CONFIG = newConfig;
+    renderTable();
+    return true;
   } catch (e) {
-    alert("Could not save to GitHub: " + e.message);
+    alert("Error: " + e.message);
+    return false;
   }
 }
 
 async function addTicker() {
   const input = document.getElementById('new-ticker-input');
+  const btn = document.getElementById('btn-confirm-add');
   const val = input.value.trim().toUpperCase();
   if (!val) return;
+
+  btn.disabled = true;
+  btn.innerText = "Saving...";
+
   if (!CONFIG.tickers.includes(val)) {
     CONFIG.tickers.push(val);
-    await saveToRepo(CONFIG);
-    triggerRefresh();
-  }
-  closeModal('modal-add-ticker');
-  input.value = "";
-}
-
-function renderFieldPicker() {
-  const filter = document.getElementById('field-search').value.toLowerCase();
-  const container = document.getElementById('field-picker-list');
-  let html = '';
-
-  for (const [cat, fields] of Object.entries(YAHOO_CATEGORIES)) {
-    let catFields = fields.filter(f => f.toLowerCase().includes(filter));
-    if (catFields.length === 0) continue;
-    html += `<div class="field-cat">${cat}</div>`;
-    for (const f of catFields) {
-      const active = CONFIG.columns.some(c => c.key === f);
-      html += `
-        <div class="field-item">
-          <span>${cleanString(f)}</span>
-          <button style="padding:2px 8px; font-size:11px;" class="${active ? '' : 'primary'}" onclick="toggleField('${f}')">
-            ${active ? 'Remove' : '+ Add'}
-          </button>
-        </div>`;
+    const ok = await saveToRepo(CONFIG);
+    if (ok) {
+      closeModal('modal-add-ticker');
+      input.value = "";
+      triggerRefresh();
     }
-  }
-  container.innerHTML = html;
-}
-
-function toggleField(key) {
-  const idx = CONFIG.columns.findIndex(c => c.key === key);
-  if (idx > -1) {
-    CONFIG.columns.splice(idx, 1);
   } else {
-    CONFIG.columns.push({ key: key, label: key, format: "number" });
+    alert(val + " is already in your ticker list.");
   }
-  renderFieldPicker();
-  renderTable();
-  saveToRepo(CONFIG);
+  btn.disabled = false;
+  btn.innerText = "Add Ticker";
 }
 
-function showDetail(sym) {
-  const d = (DATA.tickers && DATA.tickers[sym]) || {};
-  document.getElementById('detail-title').innerText = `${sym} - Detail View`;
-  document.getElementById('detail-summary').innerText = d.longBusinessSummary || "No business summary available.";
-  let fieldsHtml = '<table style="width:100%;">';
-  for (const k of Object.keys(d).sort()) {
-    if (k === "longBusinessSummary") continue;
-    fieldsHtml += `<tr><td style="text-align:left; color:var(--text-muted); font-size:11px;">${cleanString(k)}</td><td style="font-size:11px;">${cleanString(String(d[k]))}</td></tr>`;
-  }
-  fieldsHtml += '</table>';
-  document.getElementById('detail-fields').innerHTML = fieldsHtml;
-  openModal('modal-detail');
-}
-
-function openModal(id) {
-  if (id === 'modal-columns') renderFieldPicker();
-  document.getElementById(id).style.display = 'grid';
-}
+function openModal(id) { document.getElementById(id).style.display = 'grid'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-function exportCSV() {
-  let cols = [...CONFIG.columns];
-  let csv = ['Symbol,' + cols.map(c => `"${c.label}"`).join(',')];
-  for (const sym of CONFIG.tickers) {
-    const d = (DATA.tickers && DATA.tickers[sym]) || {};
-    let row = [sym];
-    for (const c of cols) {
-      row.push(`"${d[c.key] !== undefined ? d[c.key] : ''}"`);
-    }
-    csv.push(row.join(','));
-  }
-  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `stock_analysis_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
 
 async function init() {
   document.getElementById('github-repo').value = getStored('sa_repo') || "peowow/stock-analysis";
