@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v7</title>
+<title>Stock Analysis v8</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
@@ -31,9 +31,20 @@
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
     padding: 4px 8px; border-radius: var(--radius); font-size: 12px;
   }
+  
+  /* Groups / Watchlists Bar */
+  .group-bar { display: flex; align-items: center; gap: 4px; overflow-x: auto; margin-bottom: 8px; padding-bottom: 4px; }
+  .group-tab {
+    padding: 4px 10px; border-radius: var(--radius); background: var(--surface2);
+    border: 1px solid var(--border); font-size: 11px; cursor: pointer; display: flex;
+    align-items: center; gap: 6px; white-space: nowrap; user-select: none;
+  }
+  .group-tab.active { background: var(--primary); color: #0f172a; font-weight: bold; border-color: var(--primary); }
+  .group-tab.drag-over { border: 2px dashed #fff !important; transform: scale(1.05); }
+
   .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
   
-  /* Compact, Resizable Table Styles */
+  /* Compact Table & Resizing */
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
   table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
   th, td { padding: 4px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
@@ -41,6 +52,11 @@
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; }
   th.pinned { background: var(--surface2); z-index: 3; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
+  
+  /* Stock Symbol: Pure White, Draggable */
+  .stock-cell { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
+  .stock-symbol:active { cursor: grabbing; }
 
   .resizer {
     position: absolute; right: 0; top: 0; height: 100%; width: 5px;
@@ -54,11 +70,11 @@
     font-size: 11px; cursor: pointer; outline: none; width: 85%; text-align: right;
   }
   .col-select option { background: var(--surface); color: var(--text); }
-  .btn-remove-col {
+  .btn-icon {
     background: transparent; border: none; color: var(--text-muted); cursor: pointer;
-    font-size: 10px; padding: 0 2px;
+    font-size: 11px; padding: 0 2px;
   }
-  .btn-remove-col:hover { color: var(--red); }
+  .btn-icon:hover { color: var(--red); }
   .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
   /* Formula Editor Styles */
@@ -95,11 +111,16 @@
     <button id="btn-refresh" class="primary" onclick="triggerRefresh()">↻ Refresh</button>
     <button onclick="openModal('modal-add-ticker')">+ Ticker</button>
     <button onclick="openModal('modal-formula')">+ Formula</button>
+    <button onclick="openManageFormulas()">Formulas</button>
   </div>
 </header>
 
+<!-- Interactive Group Tabs -->
+<div class="group-bar" id="group-bar"></div>
+
 <div class="toolbar">
   <input type="text" id="search-box" placeholder="Filter symbol..." oninput="renderTable()">
+  <button onclick="openCreateGroup()">+ New Group</button>
   <button onclick="exportCSV()">CSV</button>
 </div>
 
@@ -135,18 +156,18 @@
   </div>
 </div>
 
-<!-- Modal: Formula -->
+<!-- Modal: Formula Editor -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
-    <h2>Add Custom Formula</h2>
+    <h2>Add Excel-Style Formula</h2>
     <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
-      Metrics turn <span style="color:#38bdf8; font-weight:bold;">blue</span> automatically. Example: <code>=(forwardPE + trailingPE) / 2</code>
+      Metrics turn <span style="color:#38bdf8; font-weight:bold;">blue</span>. You can target specific stocks like <code>AMD.currentPrice</code>.
     </p>
-    <input type="text" id="formula-name" placeholder="Column Name (e.g. Avg PE)" style="width:100%; margin-bottom:6px;">
+    <input type="text" id="formula-name" placeholder="Column Name (e.g. Vs AMD Price)" style="width:100%; margin-bottom:6px;">
     
     <div class="formula-editor-wrap">
       <div id="formula-highlight" class="formula-highlight"></div>
-      <textarea id="formula-input" class="formula-textarea" placeholder="=(forwardPE + trailingPE) / 2" oninput="onFormulaType()" spellcheck="false"></textarea>
+      <textarea id="formula-input" class="formula-textarea" placeholder="=currentPrice / AMD.currentPrice" oninput="onFormulaType()" spellcheck="false"></textarea>
     </div>
 
     <div style="display:flex; gap:8px; margin-bottom:8px;">
@@ -165,14 +186,13 @@
   </div>
 </div>
 
-<!-- Modal: Detail -->
-<div class="modal-overlay" id="modal-detail" onclick="if(event.target===this)closeModal('modal-detail')">
-  <div class="modal" style="max-width:650px;">
-    <h2 id="detail-title">Ticker Detail</h2>
-    <p id="detail-summary" style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.4;"></p>
-    <div id="detail-fields" style="max-height:50vh; overflow-y:auto;"></div>
-    <div style="margin-top:10px; text-align:right;">
-      <button onclick="closeModal('modal-detail')">Close</button>
+<!-- Modal: Manage & Delete Formulas -->
+<div class="modal-overlay" id="modal-manage-formulas" onclick="if(event.target===this)closeModal('modal-manage-formulas')">
+  <div class="modal">
+    <h2>Manage Custom Formulas</h2>
+    <div id="manage-formula-list" style="display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto;"></div>
+    <div style="margin-top:12px; text-align:right;">
+      <button onclick="closeModal('modal-manage-formulas')">Close</button>
     </div>
   </div>
 </div>
@@ -256,6 +276,12 @@ const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"
 
 let CONFIG = {
   tickers: ["VET.TO", "VET", "AMD", "TM"],
+  groups: {
+    "All": ["VET.TO", "VET", "AMD", "TM"],
+    "Energy": ["VET.TO", "VET"],
+    "Tech": ["AMD"]
+  },
+  activeGroup: "All",
   columns: [
     { key: "currentPrice", label: "Price", format: "currency", width: 90 },
     { key: "currency", label: "Currency", format: "text", width: 60 },
@@ -263,8 +289,7 @@ let CONFIG = {
     { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 85 },
     { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 85 },
     { key: "trailingEps", label: "EPS", format: "number", width: 75 },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent", width: 85 },
-    { key: "profitMargins", label: "Profit Margin", format: "percent", width: 90 }
+    { key: "dividendYield", label: "Dividend Yield", format: "percent", width: 85 }
   ],
   formulas: []
 };
@@ -291,10 +316,11 @@ function toBase64Unicode(str) {
   }));
 }
 
-function isRecognizedMetric(name) {
+function isRecognizedToken(name) {
   if (METRIC_MAP[name]) return true;
-  for (const t of Object.values(DATA.tickers || {})) {
-    if (t && t[name] !== undefined) return true;
+  if (name.includes('.')) {
+    const [sym, metric] = name.split('.');
+    return METRIC_MAP[metric] !== undefined;
   }
   return false;
 }
@@ -302,7 +328,7 @@ function isRecognizedMetric(name) {
 function onFormulaType() {
   const raw = document.getElementById('formula-input').value;
   const highlightEl = document.getElementById('formula-highlight');
-  const tokenRegex = /([A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|[\+\-\*\/\^\(\),<>=!]+|\s+)/g;
+  const tokenRegex = /([A-Za-z0-9_\.]+|\d+\.?\d*|[\+\-\*\/\^\(\),<>=!]+|\s+)/g;
   let tokens = raw.match(tokenRegex) || [];
   let html = '';
 
@@ -310,7 +336,7 @@ function onFormulaType() {
     const upper = t.toUpperCase();
     if (EXCEL_FUNCTIONS.includes(upper)) {
       html += `<span class="token-fn">${cleanString(t)}</span>`;
-    } else if (isRecognizedMetric(t)) {
+    } else if (isRecognizedToken(t)) {
       html += `<span class="token-metric">${cleanString(t)}</span>`;
     } else if (/^\d+\.?\d*$/.test(t)) {
       html += `<span class="token-num">${cleanString(t)}</span>`;
@@ -328,7 +354,7 @@ function evaluateExcelFormula(expr, row) {
     if (clean.startsWith('=')) clean = clean.slice(1).trim();
     if (!clean) return null;
 
-    let tokens = clean.match(/[A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|<=|>=|==|!=|<|>|[\+\-\*\/\^\(\),]/g);
+    let tokens = clean.match(/[A-Za-z0-9_\.]+|\d+\.?\d*|<=|>=|==|!=|<|>|[\+\-\*\/\^\(\),]/g);
     if (!tokens) return null;
     let pos = 0;
 
@@ -363,6 +389,14 @@ function evaluateExcelFormula(expr, row) {
         if (upper === 'SQRT') return Math.sqrt(args[0]);
         if (upper === 'LN') return Math.log(args[0]);
         if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
+      }
+
+      // Check specific stock targeted formula (e.g. AMD.currentPrice)
+      if (t.includes('.')) {
+        const [sym, metric] = t.split('.');
+        const targetStock = DATA.tickers[sym.toUpperCase()];
+        if (targetStock && targetStock[metric] !== undefined) return Number(targetStock[metric]);
+        return NaN;
       }
 
       if (/^[A-Za-z_]/.test(t)) {
@@ -436,7 +470,7 @@ function previewFormulaLive() {
   if (sampleVal !== null) {
     preview.innerHTML = `<span style="color:var(--green)">✓ Live Preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
   } else {
-    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula</span>`;
+    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula expression</span>`;
   }
 }
 
@@ -463,6 +497,194 @@ async function saveFormula() {
   document.getElementById('formula-highlight').innerHTML = '';
   document.getElementById('formula-preview').innerHTML = '';
   renderTable();
+}
+
+function openManageFormulas() {
+  const list = document.getElementById('manage-formula-list');
+  if (!CONFIG.formulas || CONFIG.formulas.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:8px;">No custom formulas defined.</div>';
+  } else {
+    let html = '';
+    CONFIG.formulas.forEach((f, idx) => {
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface2); padding:6px 10px; border-radius:4px;">
+          <div>
+            <b>${cleanString(f.name)}</b>
+            <div style="font-family:monospace; font-size:11px; color:var(--primary);">${cleanString(f.expr)}</div>
+          </div>
+          <button style="color:var(--red); border-color:var(--red); padding:2px 6px;" onclick="deleteFormula(${idx})">Delete</button>
+        </div>`;
+    });
+    list.innerHTML = html;
+  }
+  openModal('modal-manage-formulas');
+}
+
+function deleteFormula(idx) {
+  const f = CONFIG.formulas[idx];
+  CONFIG.formulas.splice(idx, 1);
+  CONFIG.columns = CONFIG.columns.filter(c => c.key !== f.key);
+  saveToRepo(CONFIG);
+  openManageFormulas();
+  renderTable();
+}
+
+/* Groups System */
+function renderGroups() {
+  const bar = document.getElementById('group-bar');
+  if (!CONFIG.groups) CONFIG.groups = { "All": CONFIG.tickers };
+  if (!CONFIG.activeGroup) CONFIG.activeGroup = "All";
+
+  let html = '';
+  for (const g of Object.keys(CONFIG.groups)) {
+    const isActive = (CONFIG.activeGroup === g) ? 'active' : '';
+    html += `
+      <div class="group-tab ${isActive}" 
+           onclick="setActiveGroup('${cleanString(g)}')" 
+           ondragover="event.preventDefault(); this.classList.add('drag-over');"
+           ondragleave="this.classList.remove('drag-over');"
+           ondrop="dropOnGroup(event, '${cleanString(g)}')">
+        <span>${cleanString(g)}</span>
+        ${g !== 'All' ? `<span style="font-size:10px; opacity:0.6;" onclick="event.stopPropagation(); deleteGroup('${cleanString(g)}')">✕</span>` : ''}
+      </div>`;
+  }
+  bar.innerHTML = html;
+}
+
+function setActiveGroup(g) {
+  CONFIG.activeGroup = g;
+  renderGroups();
+  renderTable();
+}
+
+function openCreateGroup() {
+  const name = prompt("Enter new Group name (e.g. Dividend Watchlist):");
+  if (!name) return;
+  const clean = name.trim();
+  if (clean && !CONFIG.groups[clean]) {
+    CONFIG.groups[clean] = [];
+    CONFIG.activeGroup = clean;
+    renderGroups();
+    renderTable();
+    saveToRepo(CONFIG);
+  }
+}
+
+function deleteGroup(g) {
+  if (confirm(`Delete group "${g}"?`)) {
+    delete CONFIG.groups[g];
+    CONFIG.activeGroup = "All";
+    renderGroups();
+    renderTable();
+    saveToRepo(CONFIG);
+  }
+}
+
+function dropOnGroup(e, targetGroup) {
+  e.preventDefault();
+  const sym = e.dataTransfer.getData("text/plain");
+  if (!sym || targetGroup === "All") return;
+  if (!CONFIG.groups[targetGroup].includes(sym)) {
+    CONFIG.groups[targetGroup].push(sym);
+    renderGroups();
+    renderTable();
+    saveToRepo(CONFIG);
+  }
+}
+
+function renderTable() {
+  renderGroups();
+  const colgroup = document.getElementById('table-cols');
+  const thead = document.getElementById('table-head');
+  const tbody = document.getElementById('table-body');
+  const search = document.getElementById('search-box').value.trim().toUpperCase();
+
+  // Column definitions
+  let colHtml = '<col style="width: 85px;">';
+  CONFIG.columns.forEach(c => {
+    colHtml += `<col style="width: ${c.width || 85}px;">`;
+  });
+  colHtml += '<col style="width: 50px;">';
+  colgroup.innerHTML = colHtml;
+
+  // Header row
+  let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
+  CONFIG.columns.forEach((col, idx) => {
+    headHtml += `
+      <th>
+        <div class="col-header">
+          <select class="col-select" onchange="changeColumnMetric(${idx}, this.value)">
+            ${generateMetricDropdownOptions(col.key)}
+          </select>
+          <span style="cursor:pointer; color:var(--text-muted); font-size:9px;" onclick="sortBy('${col.key}')">⬍</span>
+          <button class="btn-icon" onclick="removeColumn(${idx})" title="Remove column">✕</button>
+        </div>
+        <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
+      </th>`;
+  });
+  headHtml += `<th><button class="btn-add-col" onclick="openAddColumnModal()">+ Add</button></th></tr>`;
+  thead.innerHTML = headHtml;
+
+  // Filter stocks by active group
+  let visibleTickers = CONFIG.tickers || [];
+  if (CONFIG.activeGroup && CONFIG.activeGroup !== "All" && CONFIG.groups[CONFIG.activeGroup]) {
+    visibleTickers = CONFIG.groups[CONFIG.activeGroup];
+  }
+
+  // Rows
+  let rows = [];
+  for (const sym of visibleTickers) {
+    if (search && !sym.toUpperCase().includes(search)) continue;
+    const tickerData = (DATA.tickers && DATA.tickers[sym]) || {};
+    let rowObj = { symbol: sym, ...tickerData };
+
+    for (const f of (CONFIG.formulas || [])) {
+      rowObj[f.key] = evaluateExcelFormula(f.expr, tickerData);
+    }
+    rows.push(rowObj);
+  }
+
+  rows.sort((a, b) => {
+    let va = a[SORT_COL], vb = b[SORT_COL];
+    if (va === undefined || va === null) return 1;
+    if (vb === undefined || vb === null) return -1;
+    return SORT_ASC ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  let bodyHtml = '';
+  for (const r of rows) {
+    const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
+    const curr = r.currency || "";
+    bodyHtml += `
+      <tr>
+        <td class="pinned">
+          <div class="stock-cell">
+            <a class="stock-symbol" href="${yahooUrl}" target="_blank" rel="noopener noreferrer" 
+               draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '${r.symbol}')">
+              ${cleanString(r.symbol)}
+            </a>
+            <button class="btn-icon" onclick="deleteStock('${r.symbol}')" title="Delete stock">✕</button>
+          </div>
+        </td>`;
+    for (const c of CONFIG.columns) {
+      let val = r[c.key];
+      let formatted = formatVal(val, c.format, curr);
+      bodyHtml += `<td>${formatted}</td>`;
+    }
+    bodyHtml += `<td></td></tr>`;
+  }
+  tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:15px;">No tickers in this group.</td></tr>';
+}
+
+function deleteStock(sym) {
+  if (confirm(`Remove ${sym} from your portfolio?`)) {
+    CONFIG.tickers = CONFIG.tickers.filter(t => t !== sym);
+    for (const g of Object.keys(CONFIG.groups || {})) {
+      CONFIG.groups[g] = CONFIG.groups[g].filter(t => t !== sym);
+    }
+    saveToRepo(CONFIG);
+    renderTable();
+  }
 }
 
 function generateMetricDropdownOptions(selectedKey) {
@@ -502,73 +724,6 @@ function confirmAddColumn() {
   closeModal('modal-add-col');
   renderTable();
   saveToRepo(CONFIG);
-}
-
-function renderTable() {
-  const colgroup = document.getElementById('table-cols');
-  const thead = document.getElementById('table-head');
-  const tbody = document.getElementById('table-body');
-  const search = document.getElementById('search-box').value.trim().toUpperCase();
-
-  // Column widths definition
-  let colHtml = '<col style="width: 80px;">';
-  CONFIG.columns.forEach(c => {
-    colHtml += `<col style="width: ${c.width || 85}px;">`;
-  });
-  colHtml += '<col style="width: 50px;">';
-  colgroup.innerHTML = colHtml;
-
-  // Header row
-  let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
-  CONFIG.columns.forEach((col, idx) => {
-    headHtml += `
-      <th>
-        <div class="col-header">
-          <select class="col-select" onchange="changeColumnMetric(${idx}, this.value)">
-            ${generateMetricDropdownOptions(col.key)}
-          </select>
-          <span style="cursor:pointer; color:var(--text-muted); font-size:9px;" onclick="sortBy('${col.key}')">⬍</span>
-          <button class="btn-remove-col" onclick="removeColumn(${idx})" title="Remove">✕</button>
-        </div>
-        <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
-      </th>`;
-  });
-  headHtml += `<th><button class="btn-add-col" onclick="openAddColumnModal()">+ Add</button></th></tr>`;
-  thead.innerHTML = headHtml;
-
-  // Body rows
-  let rows = [];
-  for (const sym of (CONFIG.tickers || [])) {
-    if (search && !sym.toUpperCase().includes(search)) continue;
-    const tickerData = (DATA.tickers && DATA.tickers[sym]) || {};
-    let rowObj = { symbol: sym, ...tickerData };
-
-    for (const f of (CONFIG.formulas || [])) {
-      rowObj[f.key] = evaluateExcelFormula(f.expr, tickerData);
-    }
-    rows.push(rowObj);
-  }
-
-  rows.sort((a, b) => {
-    let va = a[SORT_COL], vb = b[SORT_COL];
-    if (va === undefined || va === null) return 1;
-    if (vb === undefined || vb === null) return -1;
-    return SORT_ASC ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
-  });
-
-  let bodyHtml = '';
-  for (const r of rows) {
-    const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
-    const curr = r.currency || "";
-    bodyHtml += `<tr><td class="pinned"><b><a href="${yahooUrl}" target="_blank" rel="noopener noreferrer">${cleanString(r.symbol)}</a></b> <button style="padding:1px 4px; font-size:9px;" onclick="showDetail('${r.symbol}')">ⓘ</button></td>`;
-    for (const c of CONFIG.columns) {
-      let val = r[c.key];
-      let formatted = formatVal(val, c.format, curr);
-      bodyHtml += `<td>${formatted}</td>`;
-    }
-    bodyHtml += `<td></td></tr>`;
-  }
-  tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:15px;">No tickers to display.</td></tr>';
 }
 
 function initResize(e, colIndex) {
@@ -640,7 +795,7 @@ async function triggerRefresh() {
   const token = cleanToken(getStored('sa_token'));
   const repo = getStored('sa_repo') || "peowow/stock-analysis";
   if (!token || !repo) {
-    alert("Please enter and save your token in the setup box first.");
+    alert("Please save your token in the setup box first.");
     return;
   }
   const btn = document.getElementById('btn-refresh');
@@ -686,6 +841,11 @@ async function addTicker() {
 
   if (!CONFIG.tickers.includes(val)) {
     CONFIG.tickers.push(val);
+    if (!CONFIG.groups) CONFIG.groups = { "All": [] };
+    if (CONFIG.groups["All"]) CONFIG.groups["All"].push(val);
+    if (CONFIG.activeGroup && CONFIG.activeGroup !== "All" && CONFIG.groups[CONFIG.activeGroup]) {
+      CONFIG.groups[CONFIG.activeGroup].push(val);
+    }
     const ok = await saveToRepo(CONFIG);
     if (ok) {
       closeModal('modal-add-ticker');
@@ -697,20 +857,6 @@ async function addTicker() {
   }
   btn.disabled = false;
   btn.innerText = "Add Ticker";
-}
-
-function showDetail(sym) {
-  const d = (DATA.tickers && DATA.tickers[sym]) || {};
-  document.getElementById('detail-title').innerText = `${sym} - Detail View`;
-  document.getElementById('detail-summary').innerText = d.longBusinessSummary || "No business summary available.";
-  let fieldsHtml = '<table style="width:100%;">';
-  for (const k of Object.keys(d).sort()) {
-    if (k === "longBusinessSummary") continue;
-    fieldsHtml += `<tr><td style="text-align:left; color:var(--text-muted); font-size:11px;">${cleanString(k)}</td><td style="font-size:11px;">${cleanString(String(d[k]))}</td></tr>`;
-  }
-  fieldsHtml += '</table>';
-  document.getElementById('detail-fields').innerHTML = fieldsHtml;
-  openModal('modal-detail');
 }
 
 async function loadData() {
@@ -758,6 +904,7 @@ async function loadConfig() {
         if (loaded.columns) CONFIG.columns = loaded.columns;
         if (loaded.tickers) CONFIG.tickers = loaded.tickers;
         if (loaded.formulas) CONFIG.formulas = loaded.formulas;
+        if (loaded.groups) CONFIG.groups = loaded.groups;
         return;
       }
     } catch (e) {}
