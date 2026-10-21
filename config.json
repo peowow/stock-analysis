@@ -16,7 +16,8 @@
     {
       "key": "trailingPE",
       "label": "Trailing P/E",
-      "format": "ratio"
+      "format": "ratio",
+      "width": 145
     },
     {
       "key": "forwardPE",
