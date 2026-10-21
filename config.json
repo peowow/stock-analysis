@@ -44,12 +44,13 @@
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 124
+      "width": 178
     },
     {
       "key": "forwardPE",
       "label": "Forward P/E",
-      "format": "ratio"
+      "format": "ratio",
+      "width": 210
     },
     {
       "key": "trailingEps",
@@ -98,7 +99,7 @@
     {
       "key": "formula_Average_PE",
       "name": "Average PE",
-      "expr": "=(TrailingPE + ForwardPE)/2",
+      "expr": "=(TrailingP/E + ForwardP/E)/2",
       "format": "ratio"
     }
   ]
