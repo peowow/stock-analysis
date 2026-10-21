@@ -76,7 +76,8 @@
     {
       "key": "payoutRatio",
       "label": "Payout Ratio",
-      "format": "percent"
+      "format": "percent",
+      "width": 149
     },
     {
       "key": "beta",
