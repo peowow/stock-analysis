@@ -55,9 +55,9 @@
       "format": "number"
     },
     {
-      "key": "beta",
-      "label": "Beta",
-      "format": "number"
+      "key": "freeCashflow",
+      "label": "Free CF",
+      "format": "bignum"
     }
   ],
   "formulas": []
