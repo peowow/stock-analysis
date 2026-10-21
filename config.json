@@ -34,29 +34,19 @@
       "format": "percent"
     },
     {
-      "key": "fiftyTwoWeekHigh",
-      "label": "52W High",
-      "format": "currency"
-    },
-    {
-      "key": "beta",
-      "label": "Beta",
-      "format": "number"
-    },
-    {
       "key": "profitMargins",
       "label": "Profit Margin",
       "format": "percent"
     },
     {
-      "key": "debtToEquity",
-      "label": "Debt/Eq",
-      "format": "ratio"
-    },
-    {
       "key": "targetMeanPrice",
       "label": "Target Price",
       "format": "currency"
+    },
+    {
+      "key": "payoutRatio",
+      "label": "Payout Ratio",
+      "format": "percent"
     }
   ],
   "formulas": []
