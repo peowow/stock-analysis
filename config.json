@@ -50,7 +50,7 @@
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 210
+      "width": 106
     },
     {
       "key": "trailingEps",
