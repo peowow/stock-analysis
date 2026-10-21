@@ -65,7 +65,8 @@
     {
       "key": "profitMargins",
       "label": "Profit Margin",
-      "format": "percent"
+      "format": "percent",
+      "width": 144
     },
     {
       "key": "targetMeanPrice",
