@@ -73,6 +73,18 @@
       "name": "poop",
       "expr": "=average(forwardpe, trailing pe)",
       "format": "ratio"
+    },
+    {
+      "key": "formula_poop",
+      "name": "poop",
+      "expr": "=average(forwardpe, trailing pe)",
+      "format": "ratio"
+    },
+    {
+      "key": "formula_poop",
+      "name": "poop",
+      "expr": "=(forwardPE + trailingPE)/2",
+      "format": "ratio"
     }
   ]
 }
