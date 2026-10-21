@@ -1,7 +1,6 @@
 {
   "tickers": [
     "VET.TO",
-    "VET",
     "AMD",
     "TM",
     "CLS",
@@ -13,7 +12,6 @@
   "groups": {
     "All": [
       "VET.TO",
-      "VET",
       "AMD",
       "TM",
       "VG",
@@ -21,8 +19,7 @@
       "CSU.TO"
     ],
     "Energy": [
-      "VET.TO",
-      "VET"
+      "VET.TO"
     ],
     "Tech": [
       "AMD"
