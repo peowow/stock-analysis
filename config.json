@@ -5,8 +5,26 @@
     "AMD",
     "TM",
     "CLS",
-    "NVDA"
+    "NVDA",
+    "VG"
   ],
+  "groups": {
+    "All": [
+      "VET.TO",
+      "VET",
+      "AMD",
+      "TM",
+      "VG"
+    ],
+    "Energy": [
+      "VET.TO",
+      "VET"
+    ],
+    "Tech": [
+      "AMD"
+    ]
+  },
+  "activeGroup": "All",
   "columns": [
     {
       "key": "currentPrice",
