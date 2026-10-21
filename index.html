@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v6</title>
+<title>Stock Analysis v7</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
     --text-muted: #94a3b8; --border: #334155; --primary: #38bdf8;
-    --green: #4ade80; --red: #f87171; --radius: 8px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --green: #4ade80; --red: #f87171; --radius: 6px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -18,63 +18,70 @@
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font); background: var(--bg); color: var(--text); padding: 12px; font-size: 14px; min-height: 100vh; }
-  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
-  h1 { font-size: 18px; font-weight: 700; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); padding: 8px; font-size: 13px; min-height: 100vh; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  h1 { font-size: 16px; font-weight: 700; }
   button, .btn {
     background: var(--surface2); color: var(--text); border: 1px solid var(--border);
-    padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 500;
+    padding: 4px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 500;
   }
   button.primary { background: var(--primary); color: #0f172a; font-weight: 600; border: none; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   input, select {
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
-    padding: 6px 10px; border-radius: var(--radius); font-size: 13px;
+    padding: 4px 8px; border-radius: var(--radius); font-size: 12px;
   }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
-  .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 20px; }
-  table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: right; }
-  th, td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  th { background: var(--surface2); font-weight: 600; text-align: right; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
+  
+  /* Compact, Resizable Table Styles */
+  .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
+  table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
+  th, td { padding: 4px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  th { background: var(--surface2); font-weight: 600; position: relative; user-select: none; }
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; }
   th.pinned { background: var(--surface2); z-index: 3; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
-  .col-header { display: inline-flex; align-items: center; gap: 4px; }
+
+  .resizer {
+    position: absolute; right: 0; top: 0; height: 100%; width: 5px;
+    background: rgba(0,0,0,0.1); cursor: col-resize; user-select: none;
+  }
+  .resizer:hover { background: var(--primary); }
+
+  .col-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
   .col-select {
     background: transparent; color: var(--text); border: none; font-weight: 600;
-    font-size: 12px; cursor: pointer; outline: none; text-align: right;
+    font-size: 11px; cursor: pointer; outline: none; width: 85%; text-align: right;
   }
   .col-select option { background: var(--surface); color: var(--text); }
   .btn-remove-col {
     background: transparent; border: none; color: var(--text-muted); cursor: pointer;
-    font-size: 11px; padding: 0 4px; border-radius: 4px;
+    font-size: 10px; padding: 0 2px;
   }
-  .btn-remove-col:hover { color: var(--red); background: rgba(248,113,113,0.15); }
-  .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
-  .btn-add-col:hover { background: var(--surface2); }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; z-index: 100; padding: 12px; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 650px; max-height: 85vh; overflow-y: auto; padding: 16px; }
-  .modal h2 { margin-bottom: 12px; font-size: 16px; }
-  .setup-box { margin-top: 24px; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-size: 13px; background: var(--surface); }
+  .btn-remove-col:hover { color: var(--red); }
+  .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
   /* Formula Editor Styles */
   .formula-editor-wrap {
-    position: relative; width: 100%; height: 60px; border: 1px solid var(--border);
+    position: relative; width: 100%; height: 50px; border: 1px solid var(--border);
     border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 8px;
   }
   .formula-highlight, .formula-textarea {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 8px 10px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 13px; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 6px 8px;
+    font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
     border: none; outline: none; background: transparent; margin: 0;
   }
   .formula-textarea { color: transparent; caret-color: var(--text); resize: none; z-index: 2; }
   .formula-highlight { z-index: 1; pointer-events: none; }
-  .token-metric { color: #38bdf8; font-weight: 700; text-decoration: underline; }
+  .token-metric { color: #38bdf8; font-weight: 700; }
   .token-fn { color: #c084fc; font-weight: 700; }
   .token-num { color: #fb923c; }
 
-  footer { margin-top: 24px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 12px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; z-index: 100; padding: 12px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; padding: 16px; }
+  .modal h2 { margin-bottom: 10px; font-size: 15px; }
+  .setup-box { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 12px; background: var(--surface); }
+  footer { margin-top: 20px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 8px; }
 </style>
 </head>
 <body>
@@ -82,28 +89,41 @@
 <header>
   <div>
     <h1>Stock Analysis</h1>
-    <div id="update-status" style="font-size: 11px; color: var(--text-muted);">Initializing...</div>
+    <div id="update-status" style="font-size: 10px; color: var(--text-muted);">Initializing...</div>
   </div>
   <div style="display:flex; flex-wrap:wrap; gap:6px;">
-    <button id="btn-refresh" class="primary" onclick="triggerRefresh()">↻ Refresh Now</button>
+    <button id="btn-refresh" class="primary" onclick="triggerRefresh()">↻ Refresh</button>
     <button onclick="openModal('modal-add-ticker')">+ Ticker</button>
     <button onclick="openModal('modal-formula')">+ Formula</button>
   </div>
 </header>
 
 <div class="toolbar">
-  <input type="text" id="search-box" placeholder="Search symbol..." oninput="renderTable()">
-  <button onclick="exportCSV()">Export CSV</button>
+  <input type="text" id="search-box" placeholder="Filter symbol..." oninput="renderTable()">
+  <button onclick="exportCSV()">CSV</button>
 </div>
 
 <div class="table-container">
   <table id="main-table">
+    <colgroup id="table-cols"></colgroup>
     <thead id="table-head"></thead>
     <tbody id="table-body"></tbody>
   </table>
 </div>
 
-<!-- Add Ticker Modal -->
+<!-- Modal: Add Column -->
+<div class="modal-overlay" id="modal-add-col" onclick="if(event.target===this)closeModal('modal-add-col')">
+  <div class="modal">
+    <h2>Select Column to Add</h2>
+    <select id="select-new-metric" style="width:100%; margin-bottom:12px;"></select>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button onclick="closeModal('modal-add-col')">Cancel</button>
+      <button class="primary" onclick="confirmAddColumn()">Add to Table</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Ticker -->
 <div class="modal-overlay" id="modal-add-ticker" onclick="if(event.target===this)closeModal('modal-add-ticker')">
   <div class="modal">
     <h2>Add Stock Ticker</h2>
@@ -115,29 +135,29 @@
   </div>
 </div>
 
-<!-- Formula Modal -->
+<!-- Modal: Formula -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
-    <h2>Add Excel-Style Formula</h2>
-    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-      Type recognized Yahoo metrics (turns <span style="color:#38bdf8; font-weight:bold;">blue</span>) and Excel functions like <code>IF()</code>, <code>ABS()</code>, <code>ROUND()</code>.
+    <h2>Add Custom Formula</h2>
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
+      Metrics turn <span style="color:#38bdf8; font-weight:bold;">blue</span> automatically. Example: <code>=(forwardPE + trailingPE) / 2</code>
     </p>
-    <input type="text" id="formula-name" placeholder="Formula Column Name (e.g. Price to EPS)" style="width:100%; margin-bottom:8px;">
+    <input type="text" id="formula-name" placeholder="Column Name (e.g. Avg PE)" style="width:100%; margin-bottom:6px;">
     
     <div class="formula-editor-wrap">
       <div id="formula-highlight" class="formula-highlight"></div>
-      <textarea id="formula-input" class="formula-textarea" placeholder="=(currentPrice / trailingEps)" oninput="onFormulaType()" spellcheck="false"></textarea>
+      <textarea id="formula-input" class="formula-textarea" placeholder="=(forwardPE + trailingPE) / 2" oninput="onFormulaType()" spellcheck="false"></textarea>
     </div>
 
     <div style="display:flex; gap:8px; margin-bottom:8px;">
       <select id="formula-format" style="flex:1;">
-        <option value="number">Format: Decimal Number (1.23)</option>
-        <option value="percent">Format: Percentage (12.3%)</option>
-        <option value="currency">Format: Currency ($12.34)</option>
+        <option value="ratio">Ratio / Decimal (15.2)</option>
+        <option value="percent">Percentage (15.2%)</option>
+        <option value="currency">Currency ($15.20)</option>
       </select>
     </div>
 
-    <div id="formula-preview" style="font-size:12px; margin-bottom:12px; min-height:18px;"></div>
+    <div id="formula-preview" style="font-size:11px; margin-bottom:10px; min-height:16px;"></div>
     <div style="display:flex; justify-content:flex-end; gap:8px;">
       <button onclick="closeModal('modal-formula')">Cancel</button>
       <button class="primary" onclick="saveFormula()">Save Formula</button>
@@ -145,13 +165,13 @@
   </div>
 </div>
 
-<!-- Detail Modal -->
+<!-- Modal: Detail -->
 <div class="modal-overlay" id="modal-detail" onclick="if(event.target===this)closeModal('modal-detail')">
-  <div class="modal" style="max-width:750px;">
+  <div class="modal" style="max-width:650px;">
     <h2 id="detail-title">Ticker Detail</h2>
-    <p id="detail-summary" style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.4;"></p>
+    <p id="detail-summary" style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.4;"></p>
     <div id="detail-fields" style="max-height:50vh; overflow-y:auto;"></div>
-    <div style="margin-top:12px; text-align:right;">
+    <div style="margin-top:10px; text-align:right;">
       <button onclick="closeModal('modal-detail')">Close</button>
     </div>
   </div>
@@ -159,27 +179,24 @@
 
 <details class="setup-box">
   <summary style="cursor:pointer; font-weight:600;">GitHub Token & Setup (One-Time Per Device)</summary>
-  <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-    <p style="font-size:12px; color:var(--text-muted);">
-      Personal access token (fine-grained, Contents: Read/Write, Actions: Read/Write). Saved locally in this browser.
-    </p>
+  <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
     <input type="text" id="github-repo" placeholder="peowow/stock-analysis">
     <input type="text" id="github-token" placeholder="github_pat_...">
-    <div style="display:flex; gap:8px;">
+    <div style="display:flex; gap:6px;">
       <button class="primary" type="button" onclick="saveGitHubConfig()">Save Token</button>
       <button type="button" onclick="clearGitHubConfig()">Clear</button>
     </div>
-    <div id="token-status" style="font-size:12px; font-weight:600;"></div>
+    <div id="token-status" style="font-size:11px; font-weight:600;"></div>
   </div>
 </details>
 
 <footer>
-  Data from Yahoo Finance via yfinance (unofficial, delayed/subject to error). Not financial advice.
+  Data from Yahoo Finance via yfinance (unofficial). Not financial advice.
 </footer>
 
 <script>
 const YAHOO_SECTIONS = {
-  "Valuation Measures": [
+  "Valuation": [
     { key: "marketCap", label: "Market Cap", format: "bignum" },
     { key: "enterpriseValue", label: "Enterprise Value", format: "bignum" },
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
@@ -190,38 +207,38 @@ const YAHOO_SECTIONS = {
     { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
     { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
   ],
-  "Financial Highlights": [
+  "Financials": [
     { key: "profitMargins", label: "Profit Margin", format: "percent" },
     { key: "operatingMargins", label: "Operating Margin", format: "percent" },
     { key: "grossMargins", label: "Gross Margin", format: "percent" },
     { key: "returnOnAssets", label: "Return on Assets", format: "percent" },
     { key: "returnOnEquity", label: "Return on Equity", format: "percent" },
-    { key: "totalRevenue", label: "Total Revenue", format: "bignum" },
-    { key: "revenueGrowth", label: "Revenue Growth", format: "percent" },
+    { key: "totalRevenue", label: "Revenue", format: "bignum" },
+    { key: "revenueGrowth", label: "Rev Growth", format: "percent" },
     { key: "ebitda", label: "EBITDA", format: "bignum" },
     { key: "netIncomeToCommon", label: "Net Income", format: "bignum" },
-    { key: "trailingEps", label: "Diluted EPS", format: "number" },
+    { key: "trailingEps", label: "EPS", format: "number" },
     { key: "forwardEps", label: "Forward EPS", format: "number" },
     { key: "totalCash", label: "Total Cash", format: "bignum" },
     { key: "totalDebt", label: "Total Debt", format: "bignum" },
     { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
     { key: "currentRatio", label: "Current Ratio", format: "ratio" },
     { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
-    { key: "operatingCashflow", label: "Operating Cash Flow", format: "bignum" },
-    { key: "freeCashflow", label: "Free Cash Flow", format: "bignum" }
+    { key: "operatingCashflow", label: "Operating CF", format: "bignum" },
+    { key: "freeCashflow", label: "Free CF", format: "bignum" }
   ],
-  "Trading Information": [
+  "Trading": [
     { key: "currentPrice", label: "Price", format: "currency" },
     { key: "currency", label: "Currency", format: "text" },
     { key: "beta", label: "Beta", format: "number" },
-    { key: "fiftyTwoWeekHigh", label: "52-Week High", format: "currency" },
-    { key: "fiftyTwoWeekLow", label: "52-Week Low", format: "currency" },
-    { key: "fiftyDayAverage", label: "50-Day Moving Avg", format: "currency" },
-    { key: "twoHundredDayAverage", label: "200-Day Moving Avg", format: "currency" },
-    { key: "targetMeanPrice", label: "Analyst Target Price", format: "currency" }
+    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
+    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
+    { key: "fiftyDayAverage", label: "50-Day MA", format: "currency" },
+    { key: "twoHundredDayAverage", label: "200-Day MA", format: "currency" },
+    { key: "targetMeanPrice", label: "Target Price", format: "currency" }
   ],
-  "Dividends & Splits": [
-    { key: "dividendRate", label: "Forward Dividend Rate", format: "currency" },
+  "Dividends": [
+    { key: "dividendRate", label: "Dividend Rate", format: "currency" },
     { key: "dividendYield", label: "Dividend Yield", format: "percent" },
     { key: "trailingAnnualDividendYield", label: "Trailing Div Yield", format: "percent" },
     { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
@@ -240,13 +257,14 @@ const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"
 let CONFIG = {
   tickers: ["VET.TO", "VET", "AMD", "TM"],
   columns: [
-    { key: "currentPrice", label: "Price", format: "currency" },
-    { key: "currency", label: "Currency", format: "text" },
-    { key: "marketCap", label: "Market Cap", format: "bignum" },
-    { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
-    { key: "forwardPE", label: "Forward P/E", format: "ratio" },
-    { key: "trailingEps", label: "Diluted EPS", format: "number" },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent" }
+    { key: "currentPrice", label: "Price", format: "currency", width: 90 },
+    { key: "currency", label: "Currency", format: "text", width: 60 },
+    { key: "marketCap", label: "Market Cap", format: "bignum", width: 95 },
+    { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 85 },
+    { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 85 },
+    { key: "trailingEps", label: "EPS", format: "number", width: 75 },
+    { key: "dividendYield", label: "Dividend Yield", format: "percent", width: 85 },
+    { key: "profitMargins", label: "Profit Margin", format: "percent", width: 90 }
   ],
   formulas: []
 };
@@ -273,7 +291,6 @@ function toBase64Unicode(str) {
   }));
 }
 
-// Check if an identifier is a recognized Yahoo metric from real data or dictionary
 function isRecognizedMetric(name) {
   if (METRIC_MAP[name]) return true;
   for (const t of Object.values(DATA.tickers || {})) {
@@ -282,12 +299,9 @@ function isRecognizedMetric(name) {
   return false;
 }
 
-// Highlight recognized tokens as the user types
 function onFormulaType() {
   const raw = document.getElementById('formula-input').value;
   const highlightEl = document.getElementById('formula-highlight');
-
-  // Tokenize preserving spaces & symbols
   const tokenRegex = /([A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|[\+\-\*\/\^\(\),<>=!]+|\s+)/g;
   let tokens = raw.match(tokenRegex) || [];
   let html = '';
@@ -308,7 +322,6 @@ function onFormulaType() {
   previewFormulaLive();
 }
 
-// Safe Excel Formula Evaluator
 function evaluateExcelFormula(expr, row) {
   try {
     let clean = expr.trim();
@@ -323,29 +336,25 @@ function evaluateExcelFormula(expr, row) {
       let args = [];
       if (tokens[pos] === ')') return args;
       args.push(parseExpression());
-      while (tokens[pos] === ',') {
-        pos++;
-        args.push(parseExpression());
-      }
+      while (tokens[pos] === ',') { pos++; args.push(parseExpression()); }
       return args;
     }
 
     function parsePrimary() {
       let t = tokens[pos++];
-      if (!t) throw new Error("Unexpected end");
+      if (!t) throw new Error();
       if (t === '(') {
         let v = parseExpression();
-        if (tokens[pos++] !== ')') throw new Error("Missing )");
+        if (tokens[pos++] !== ')') throw new Error();
         return v;
       }
       if (/^\d+\.?\d*$/.test(t)) return parseFloat(t);
 
-      // Function calls: IF, ABS, ROUND, etc.
       let upper = t.toUpperCase();
       if (tokens[pos] === '(' && EXCEL_FUNCTIONS.includes(upper)) {
-        pos++; // skip '('
+        pos++;
         let args = parseArgs();
-        if (tokens[pos++] !== ')') throw new Error("Missing ) in function");
+        if (tokens[pos++] !== ')') throw new Error();
         if (upper === 'IF') return args[0] ? args[1] : args[2];
         if (upper === 'ABS') return Math.abs(args[0]);
         if (upper === 'ROUND') return Number(args[0].toFixed(args[1] || 0));
@@ -356,13 +365,12 @@ function evaluateExcelFormula(expr, row) {
         if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
       }
 
-      // Recognized metric variable
       if (/^[A-Za-z_]/.test(t)) {
         let val = row[t];
         if (val === undefined || val === null) return NaN;
         return Number(val);
       }
-      throw new Error("Syntax error");
+      throw new Error();
     }
 
     function parseFactor() {
@@ -418,20 +426,17 @@ function previewFormulaLive() {
   const preview = document.getElementById('formula-preview');
   const firstTicker = (CONFIG.tickers && CONFIG.tickers[0]) || null;
 
-  if (!expr.trim()) {
-    preview.innerHTML = '';
-    return;
-  }
+  if (!expr.trim()) { preview.innerHTML = ''; return; }
   if (!firstTicker || !DATA.tickers[firstTicker]) {
-    preview.innerHTML = '<span style="color:var(--text-muted)">Awaiting ticker data for preview.</span>';
+    preview.innerHTML = '<span style="color:var(--text-muted)">Waiting for ticker data...</span>';
     return;
   }
 
   const sampleVal = evaluateExcelFormula(expr, DATA.tickers[firstTicker]);
   if (sampleVal !== null) {
-    preview.innerHTML = `<span style="color:var(--green)">✓ Valid preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
+    preview.innerHTML = `<span style="color:var(--green)">✓ Live Preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
   } else {
-    preview.innerHTML = `<span style="color:var(--red)">⚠ Incomplete or invalid formula</span>`;
+    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula</span>`;
   }
 }
 
@@ -441,7 +446,7 @@ async function saveFormula() {
   const format = document.getElementById('formula-format').value;
 
   if (!name || !expr) {
-    alert("Please provide both a name and a formula expression.");
+    alert("Please enter a name and formula.");
     return;
   }
 
@@ -449,7 +454,7 @@ async function saveFormula() {
   const formulaKey = "formula_" + name.replace(/[^A-Za-z0-9_]/g, '_');
 
   CONFIG.formulas.push({ key: formulaKey, name: name, expr: expr, format: format });
-  CONFIG.columns.push({ key: formulaKey, label: name, format: format, isFormula: true });
+  CONFIG.columns.push({ key: formulaKey, label: name, format: format, width: 85, isFormula: true });
 
   await saveToRepo(CONFIG);
   closeModal('modal-formula');
@@ -462,7 +467,6 @@ async function saveFormula() {
 
 function generateMetricDropdownOptions(selectedKey) {
   let html = '';
-  // Custom formulas group
   if (CONFIG.formulas && CONFIG.formulas.length > 0) {
     html += `<optgroup label="Custom Formulas">`;
     for (const f of CONFIG.formulas) {
@@ -471,7 +475,6 @@ function generateMetricDropdownOptions(selectedKey) {
     }
     html += `</optgroup>`;
   }
-  // Yahoo sections
   for (const [secTitle, metrics] of Object.entries(YAHOO_SECTIONS)) {
     html += `<optgroup label="${cleanString(secTitle)}">`;
     for (const m of metrics) {
@@ -483,11 +486,39 @@ function generateMetricDropdownOptions(selectedKey) {
   return html;
 }
 
+function openAddColumnModal() {
+  document.getElementById('select-new-metric').innerHTML = generateMetricDropdownOptions("");
+  openModal('modal-add-col');
+}
+
+function confirmAddColumn() {
+  const key = document.getElementById('select-new-metric').value;
+  let meta = METRIC_MAP[key];
+  if (!meta) {
+    const f = (CONFIG.formulas || []).find(item => item.key === key);
+    meta = f ? { label: f.name, format: f.format } : { label: key, format: "number" };
+  }
+  CONFIG.columns.push({ key: key, label: meta.label, format: meta.format, width: 90 });
+  closeModal('modal-add-col');
+  renderTable();
+  saveToRepo(CONFIG);
+}
+
 function renderTable() {
+  const colgroup = document.getElementById('table-cols');
   const thead = document.getElementById('table-head');
   const tbody = document.getElementById('table-body');
   const search = document.getElementById('search-box').value.trim().toUpperCase();
 
+  // Column widths definition
+  let colHtml = '<col style="width: 80px;">';
+  CONFIG.columns.forEach(c => {
+    colHtml += `<col style="width: ${c.width || 85}px;">`;
+  });
+  colHtml += '<col style="width: 50px;">';
+  colgroup.innerHTML = colHtml;
+
+  // Header row
   let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
@@ -496,21 +527,22 @@ function renderTable() {
           <select class="col-select" onchange="changeColumnMetric(${idx}, this.value)">
             ${generateMetricDropdownOptions(col.key)}
           </select>
-          <span style="cursor:pointer; color:var(--text-muted); font-size:10px;" onclick="sortBy('${col.key}')">⬍</span>
-          <button class="btn-remove-col" onclick="removeColumn(${idx})" title="Remove column">✕</button>
+          <span style="cursor:pointer; color:var(--text-muted); font-size:9px;" onclick="sortBy('${col.key}')">⬍</span>
+          <button class="btn-remove-col" onclick="removeColumn(${idx})" title="Remove">✕</button>
         </div>
+        <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
       </th>`;
   });
-  headHtml += `<th><button class="btn-add-col" onclick="addColumn()" title="Add another column">+ Add Col</button></th></tr>`;
+  headHtml += `<th><button class="btn-add-col" onclick="openAddColumnModal()">+ Add</button></th></tr>`;
   thead.innerHTML = headHtml;
 
+  // Body rows
   let rows = [];
   for (const sym of (CONFIG.tickers || [])) {
     if (search && !sym.toUpperCase().includes(search)) continue;
     const tickerData = (DATA.tickers && DATA.tickers[sym]) || {};
     let rowObj = { symbol: sym, ...tickerData };
 
-    // Calculate user formulas for this stock
     for (const f of (CONFIG.formulas || [])) {
       rowObj[f.key] = evaluateExcelFormula(f.expr, tickerData);
     }
@@ -528,7 +560,7 @@ function renderTable() {
   for (const r of rows) {
     const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
     const curr = r.currency || "";
-    bodyHtml += `<tr><td class="pinned"><b><a href="${yahooUrl}" target="_blank" rel="noopener noreferrer">${cleanString(r.symbol)}</a></b> <button style="padding:1px 5px; font-size:10px;" onclick="showDetail('${r.symbol}')">ⓘ</button></td>`;
+    bodyHtml += `<tr><td class="pinned"><b><a href="${yahooUrl}" target="_blank" rel="noopener noreferrer">${cleanString(r.symbol)}</a></b> <button style="padding:1px 4px; font-size:9px;" onclick="showDetail('${r.symbol}')">ⓘ</button></td>`;
     for (const c of CONFIG.columns) {
       let val = r[c.key];
       let formatted = formatVal(val, c.format, curr);
@@ -536,7 +568,28 @@ function renderTable() {
     }
     bodyHtml += `<td></td></tr>`;
   }
-  tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:20px;">No tickers to display.</td></tr>';
+  tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:15px;">No tickers to display.</td></tr>';
+}
+
+function initResize(e, colIndex) {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startWidth = CONFIG.columns[colIndex].width || 85;
+
+  function doDrag(e) {
+    const newWidth = Math.max(50, startWidth + (e.clientX - startX));
+    CONFIG.columns[colIndex].width = newWidth;
+    renderTable();
+  }
+
+  function stopDrag() {
+    window.removeEventListener('mousemove', doDrag);
+    window.removeEventListener('mouseup', stopDrag);
+    saveToRepo(CONFIG);
+  }
+
+  window.addEventListener('mousemove', doDrag);
+  window.addEventListener('mouseup', stopDrag);
 }
 
 function sortBy(key) {
@@ -548,16 +601,12 @@ function sortBy(key) {
 function changeColumnMetric(index, newKey) {
   let meta = METRIC_MAP[newKey];
   if (!meta) {
-    const formula = (CONFIG.formulas || []).find(f => f.key === newKey);
-    meta = formula ? { label: formula.name, format: formula.format } : { label: newKey, format: "number" };
+    const f = (CONFIG.formulas || []).find(item => item.key === newKey);
+    meta = f ? { label: f.name, format: f.format } : { label: newKey, format: "number" };
   }
-  CONFIG.columns[index] = { key: newKey, label: meta.label, format: meta.format };
-  renderTable();
-  saveToRepo(CONFIG);
-}
-
-function addColumn() {
-  CONFIG.columns.push({ key: "beta", label: "Beta", format: "number" });
+  CONFIG.columns[index].key = newKey;
+  CONFIG.columns[index].label = meta.label;
+  CONFIG.columns[index].format = meta.format;
   renderTable();
   saveToRepo(CONFIG);
 }
@@ -572,6 +621,21 @@ function removeColumn(index) {
   saveToRepo(CONFIG);
 }
 
+function formatVal(val, format, curr) {
+  if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
+  if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(1) + "%";
+  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 2});
+  if (format === "bignum") {
+    const n = Number(val);
+    if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
+    if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
+    return n.toLocaleString();
+  }
+  return cleanString(String(val));
+}
+
 async function triggerRefresh() {
   const token = cleanToken(getStored('sa_token'));
   const repo = getStored('sa_repo') || "peowow/stock-analysis";
@@ -581,22 +645,18 @@ async function triggerRefresh() {
   }
   const btn = document.getElementById('btn-refresh');
   btn.disabled = true;
-  btn.innerText = "Dispatching...";
+  btn.innerText = "Refreshing...";
 
   try {
     const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update.yml/dispatches`, {
       method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 
     let currentUpdated = DATA.updated;
-    btn.innerText = "Running (1-2 min)...";
+    btn.innerText = "Running (1-2m)...";
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts++;
@@ -604,14 +664,14 @@ async function triggerRefresh() {
       if (DATA.updated !== currentUpdated || attempts > 30) {
         clearInterval(interval);
         btn.disabled = false;
-        btn.innerText = "↻ Refresh Now";
+        btn.innerText = "↻ Refresh";
         renderTable();
       }
     }, 5000);
   } catch (e) {
     alert("Could not start update: " + e.message);
     btn.disabled = false;
-    btn.innerText = "↻ Refresh Now";
+    btn.innerText = "↻ Refresh";
   }
 }
 
@@ -633,7 +693,7 @@ async function addTicker() {
       triggerRefresh();
     }
   } else {
-    alert(val + " is already in your ticker list.");
+    alert(val + " already added.");
   }
   btn.disabled = false;
   btn.innerText = "Add Ticker";
@@ -651,21 +711,6 @@ function showDetail(sym) {
   fieldsHtml += '</table>';
   document.getElementById('detail-fields').innerHTML = fieldsHtml;
   openModal('modal-detail');
-}
-
-function formatVal(val, format, curr) {
-  if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
-  if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(2) + "%";
-  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 2});
-  if (format === "bignum") {
-    const n = Number(val);
-    if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
-    if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
-    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
-    return n.toLocaleString();
-  }
-  return cleanString(String(val));
 }
 
 async function loadData() {
@@ -686,7 +731,7 @@ async function loadData() {
       const res = await fetch(url, { headers });
       if (res.ok) {
         DATA = await res.json();
-        statusEl.innerText = 'Last updated: ' + new Date(DATA.updated).toLocaleString();
+        statusEl.innerText = 'Updated: ' + new Date(DATA.updated).toLocaleTimeString();
         return;
       }
     } catch (e) {}
@@ -731,7 +776,7 @@ async function saveToRepo(newConfig) {
     const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json?ref=main`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (!getRes.ok) throw new Error("Fetch config error: HTTP " + getRes.status);
+    if (!getRes.ok) throw new Error("Fetch error: HTTP " + getRes.status);
     const fileData = await getRes.json();
     const sha = fileData.sha;
 
@@ -756,7 +801,6 @@ async function saveToRepo(newConfig) {
     renderTable();
     return true;
   } catch (e) {
-    console.warn("Save error:", e);
     return false;
   }
 }
@@ -768,7 +812,7 @@ function saveGitHubConfig() {
 
   if (!repoInput || !tokenInput) {
     status.style.color = "var(--red)";
-    status.innerText = "Please fill in both the repository and token.";
+    status.innerText = "Please fill in repo and token.";
     return;
   }
   setStored('sa_repo', repoInput);
