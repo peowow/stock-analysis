@@ -10,7 +10,8 @@
     "CSU.TO",
     "TRLV",
     "FSLR",
-    "AC.TO"
+    "AC.TO",
+    "MDA.TO"
   ],
   "groups": {
     "All": [
@@ -22,7 +23,8 @@
       "CSU.TO",
       "TRLV",
       "FSLR",
-      "AC.TO"
+      "AC.TO",
+      "MDA.TO"
     ],
     "Energy": [
       "VET.TO"
@@ -83,7 +85,21 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
+    },
+    {
+      "key": "formula_Average_PE",
+      "label": "Average PE",
+      "format": "ratio",
+      "width": 85,
+      "isFormula": true
     }
   ],
-  "formulas": []
+  "formulas": [
+    {
+      "key": "formula_Average_PE",
+      "name": "Average PE",
+      "expr": "=(TrailingPE + ForwardPE)/2",
+      "format": "ratio"
+    }
+  ]
 }
