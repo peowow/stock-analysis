@@ -89,13 +89,6 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
-    },
-    {
-      "key": "formula_Average_PE",
-      "label": "Average PE",
-      "format": "ratio",
-      "width": 85,
-      "isFormula": true
     }
   ],
   "formulas": [
