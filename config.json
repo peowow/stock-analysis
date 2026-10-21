@@ -47,6 +47,11 @@
       "key": "payoutRatio",
       "label": "Payout Ratio",
       "format": "percent"
+    },
+    {
+      "key": "beta",
+      "label": "Beta",
+      "format": "number"
     }
   ],
   "formulas": []
