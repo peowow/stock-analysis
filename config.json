@@ -14,11 +14,6 @@
       "format": "currency"
     },
     {
-      "key": "marketCap",
-      "label": "Mkt Cap",
-      "format": "bignum"
-    },
-    {
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio"
@@ -37,11 +32,6 @@
       "key": "dividendYield",
       "label": "Div Yield",
       "format": "percent"
-    },
-    {
-      "key": "fiftyTwoWeekLow",
-      "label": "52W Low",
-      "format": "currency"
     },
     {
       "key": "fiftyTwoWeekHigh",
