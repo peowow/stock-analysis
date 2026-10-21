@@ -58,7 +58,21 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
+    },
+    {
+      "key": "formula_poop",
+      "label": "poop",
+      "format": "ratio",
+      "width": 85,
+      "isFormula": true
     }
   ],
-  "formulas": []
+  "formulas": [
+    {
+      "key": "formula_poop",
+      "name": "poop",
+      "expr": "=average(forwardpe, trailing pe)",
+      "format": "ratio"
+    }
+  ]
 }
