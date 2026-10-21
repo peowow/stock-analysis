@@ -52,6 +52,11 @@
       "key": "beta",
       "label": "Beta",
       "format": "number"
+    },
+    {
+      "key": "beta",
+      "label": "Beta",
+      "format": "number"
     }
   ],
   "formulas": []
