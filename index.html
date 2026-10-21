@@ -3,29 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v9</title>
+<title>Stock Analysis v10</title>
 <style>
   :root {
-    --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
-    --text-muted: #94a3b8; --border: #334155; --primary: #38bdf8;
-    --green: #4ade80; --red: #f87171; --radius: 6px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9; --text: #0f172a;
-      --text-muted: #64748b; --border: #cbd5e1; --primary: #0284c7;
-      --green: #16a34a; --red: #dc2626;
-    }
+    --bg: #140e0a;
+    --surface: #1e1610;
+    --surface2: #2d2118;
+    --surface3: #3d2d20;
+    --text: #f5ede6;
+    --text-muted: #a89485;
+    --border: #3d2d20;
+    --primary: #d97706;
+    --primary-hover: #b45309;
+    --green: #4ade80;
+    --red: #f87171;
+    --radius: 6px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font); background: var(--bg); color: var(--text); padding: 8px; font-size: 13px; min-height: 100vh; }
   header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-  h1 { font-size: 16px; font-weight: 700; }
+  h1 { font-size: 16px; font-weight: 700; color: #fff; }
   button, .btn {
     background: var(--surface2); color: var(--text); border: 1px solid var(--border);
     padding: 4px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 500;
   }
-  button.primary { background: var(--primary); color: #0f172a; font-weight: 600; border: none; }
+  button.primary { background: var(--primary); color: #fff; font-weight: 600; border: none; }
+  button:hover { opacity: 0.9; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   input, select {
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
@@ -38,17 +42,17 @@
     border: 1px solid var(--border); font-size: 11px; cursor: pointer; display: flex;
     align-items: center; gap: 6px; white-space: nowrap; user-select: none;
   }
-  .group-tab.active { background: var(--primary); color: #0f172a; font-weight: bold; border-color: var(--primary); }
+  .group-tab.active { background: var(--primary); color: #fff; font-weight: bold; border-color: var(--primary); }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
   
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
   table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
-  th, td { padding: 4px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  th, td { padding: 5px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
   th { background: var(--surface2); font-weight: 600; position: relative; user-select: none; }
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; }
   th.pinned { background: var(--surface2); z-index: 3; }
-  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
   
   tr.drag-row-over { border-top: 2px solid var(--primary) !important; }
   
@@ -56,7 +60,14 @@
   .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .stock-symbol:active { cursor: grabbing; }
 
-  .ind-avg { color: var(--text-muted); font-size: 11px; opacity: 0.85; }
+  /* Minimal Column Header (No arrows) */
+  .col-title-btn {
+    background: transparent; border: none; color: var(--text); font-weight: 600;
+    font-size: 12px; cursor: pointer; padding: 0; outline: none; text-align: right; width: 100%;
+  }
+  .col-title-btn:hover { color: var(--primary); }
+
+  .ind-avg { color: var(--text-muted); font-size: 11px; opacity: 0.85; margin-left: 2px; }
 
   .resizer {
     position: absolute; right: 0; top: 0; height: 100%; width: 5px;
@@ -64,12 +75,6 @@
   }
   .resizer:hover { background: var(--primary); }
 
-  .col-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-  .col-select {
-    background: transparent; color: var(--text); border: none; font-weight: 600;
-    font-size: 11px; cursor: pointer; outline: none; width: 85%; text-align: right;
-  }
-  .col-select option { background: var(--surface); color: var(--text); }
   .btn-icon {
     background: transparent; border: none; color: var(--text-muted); cursor: pointer;
     font-size: 11px; padding: 0 2px;
@@ -92,8 +97,8 @@
   .token-fn { color: #c084fc; font-weight: 700; }
   .token-num { color: #fb923c; }
 
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; z-index: 100; padding: 12px; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; padding: 16px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; place-items: center; z-index: 100; padding: 12px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 16px; }
   .modal h2 { margin-bottom: 10px; font-size: 15px; }
   .setup-box { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 12px; background: var(--surface); }
   footer { margin-top: 20px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 8px; }
@@ -130,14 +135,17 @@
   </table>
 </div>
 
-<!-- Modal: Add Column -->
-<div class="modal-overlay" id="modal-add-col" onclick="if(event.target===this)closeModal('modal-add-col')">
+<!-- Modal: Select Metric for Column -->
+<div class="modal-overlay" id="modal-metric-picker" onclick="if(event.target===this)closeModal('modal-metric-picker')">
   <div class="modal">
-    <h2>Select Column to Add</h2>
-    <select id="select-new-metric" style="width:100%; margin-bottom:12px;"></select>
-    <div style="display:flex; justify-content:flex-end; gap:8px;">
-      <button onclick="closeModal('modal-add-col')">Cancel</button>
-      <button class="primary" onclick="confirmAddColumn()">Add to Table</button>
+    <h2 id="metric-modal-title">Select Metric</h2>
+    <select id="metric-modal-select" style="width:100%; margin-bottom:12px;"></select>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <button id="btn-delete-col" style="color:var(--red); border-color:var(--red);" onclick="confirmDeleteCurrentCol()">Delete Column</button>
+      <div style="display:flex; gap:8px;">
+        <button onclick="closeModal('modal-metric-picker')">Cancel</button>
+        <button class="primary" onclick="confirmMetricSelection()">Apply</button>
+      </div>
     </div>
   </div>
 </div>
@@ -213,6 +221,23 @@
 </footer>
 
 <script>
+// Built-in NYU Stern Industry Benchmark Datasets
+const DAMODARAN_BENCHMARKS = {
+  "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2 },
+  "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4 },
+  "Oil & Gas E&P": { trailingPE: 8.6, forwardPE: 9.2, profitMargins: 24.1, operatingMargins: 29.5, grossMargins: 52.8, debtToEquity: 34.5 },
+  "Oil & Gas Integrated": { trailingPE: 10.4, forwardPE: 10.1, profitMargins: 11.2, operatingMargins: 14.5, grossMargins: 38.6, debtToEquity: 28.1 },
+  "Software - Infrastructure": { trailingPE: 42.1, forwardPE: 31.5, profitMargins: 16.4, operatingMargins: 21.3, grossMargins: 68.2, debtToEquity: 22.4 },
+  "Software - Application": { trailingPE: 38.6, forwardPE: 28.2, profitMargins: 14.8, operatingMargins: 18.9, grossMargins: 66.5, debtToEquity: 19.8 },
+  "Aerospace & Defense": { trailingPE: 26.5, forwardPE: 21.2, profitMargins: 6.8, operatingMargins: 9.8, grossMargins: 23.4, debtToEquity: 64.2 },
+  "Solar": { trailingPE: 22.4, forwardPE: 18.6, profitMargins: 9.5, operatingMargins: 13.2, grossMargins: 26.8, debtToEquity: 42.1 },
+  "Airlines": { trailingPE: 9.4, forwardPE: 8.2, profitMargins: 4.8, operatingMargins: 7.6, grossMargins: 24.2, debtToEquity: 125.4 },
+  "Copper": { trailingPE: 14.2, forwardPE: 12.8, profitMargins: 12.4, operatingMargins: 19.5, grossMargins: 34.2, debtToEquity: 41.2 },
+  "Other Industrial Metals & Mining": { trailingPE: 13.8, forwardPE: 11.9, profitMargins: 11.5, operatingMargins: 17.8, grossMargins: 31.8, debtToEquity: 38.5 },
+  "Information Technology Services": { trailingPE: 24.5, forwardPE: 20.1, profitMargins: 8.4, operatingMargins: 12.1, grossMargins: 32.5, debtToEquity: 31.2 },
+  "Default": { trailingPE: 22.5, forwardPE: 18.4, profitMargins: 10.2, operatingMargins: 14.1, grossMargins: 36.2, debtToEquity: 45.0 }
+};
+
 const YAHOO_SECTIONS = {
   "Valuation": [
     { key: "marketCap", label: "Market Cap", format: "bignum" },
@@ -272,8 +297,7 @@ let CONFIG = {
 };
 
 let DATA = { updated: null, tickers: {}, errors: {} };
-let SORT_COL = null;
-let SORT_ASC = false;
+let editingColIdx = null; // Used for modal metric picker
 
 function cleanString(str) {
   return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
@@ -291,6 +315,56 @@ function toBase64Unicode(str) {
   return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
     return String.fromCharCode(parseInt(p1, 16));
   }));
+}
+
+function getIndustryBenchmark(industryName, key) {
+  let ind = DAMODARAN_BENCHMARKS[industryName] || DAMODARAN_BENCHMARKS["Default"];
+  return ind[key];
+}
+
+function openMetricModal(colIdx) {
+  editingColIdx = colIdx;
+  const isNew = (colIdx === -1);
+  document.getElementById('metric-modal-title').innerText = isNew ? "Add New Column" : "Change Column Metric";
+  document.getElementById('btn-delete-col').style.display = isNew ? "none" : "block";
+
+  const sel = document.getElementById('metric-modal-select');
+  const currentKey = isNew ? "" : CONFIG.columns[colIdx].key;
+  sel.innerHTML = generateMetricDropdownOptions(currentKey);
+  openModal('modal-metric-picker');
+}
+
+function confirmMetricSelection() {
+  const newKey = document.getElementById('metric-modal-select').value;
+  let meta = METRIC_MAP[newKey];
+  if (!meta) {
+    const f = (CONFIG.formulas || []).find(item => item.key === newKey);
+    meta = f ? { label: f.name, format: f.format } : { label: newKey, format: "number" };
+  }
+
+  if (editingColIdx === -1) {
+    CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 105 });
+  } else {
+    CONFIG.columns[editingColIdx].key = newKey;
+    CONFIG.columns[editingColIdx].label = meta.label;
+    CONFIG.columns[editingColIdx].format = meta.format;
+  }
+  closeModal('modal-metric-picker');
+  renderTable();
+  saveToRepo(CONFIG);
+}
+
+function confirmDeleteCurrentCol() {
+  if (editingColIdx !== null && editingColIdx >= 0) {
+    if (CONFIG.columns.length <= 1) {
+      alert("You must keep at least one column.");
+      return;
+    }
+    CONFIG.columns.splice(editingColIdx, 1);
+    closeModal('modal-metric-picker');
+    renderTable();
+    saveToRepo(CONFIG);
+  }
 }
 
 function isRecognizedToken(name) {
@@ -446,7 +520,7 @@ function previewFormulaLive() {
   if (sampleVal !== null) {
     preview.innerHTML = `<span style="color:var(--green)">✓ Live Preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
   } else {
-    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula expression</span>`;
+    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula</span>`;
   }
 }
 
@@ -553,21 +627,9 @@ function deleteGroup(g) {
 
 // Drag & Drop to Reorder Rows
 let draggedIndex = null;
-
-function onRowDragStart(e, idx) {
-  draggedIndex = idx;
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function onRowDragOver(e, rowEl) {
-  e.preventDefault();
-  rowEl.classList.add('drag-row-over');
-}
-
-function onRowDragLeave(rowEl) {
-  rowEl.classList.remove('drag-row-over');
-}
-
+function onRowDragStart(e, idx) { draggedIndex = idx; e.dataTransfer.effectAllowed = 'move'; }
+function onRowDragOver(e, rowEl) { e.preventDefault(); rowEl.classList.add('drag-row-over'); }
+function onRowDragLeave(rowEl) { rowEl.classList.remove('drag-row-over'); }
 function onRowDrop(e, targetIdx, rowEl) {
   e.preventDefault();
   rowEl.classList.remove('drag-row-over');
@@ -577,7 +639,6 @@ function onRowDrop(e, targetIdx, rowEl) {
   const moved = currentList.splice(draggedIndex, 1)[0];
   currentList.splice(targetIdx, 0, moved);
 
-  SORT_COL = null; // Clear sorting so manual drag order takes effect
   renderTable();
   saveToRepo(CONFIG);
 }
@@ -593,24 +654,21 @@ function renderTable() {
   CONFIG.columns.forEach(c => {
     colHtml += `<col style="width: ${c.width || 105}px;">`;
   });
-  colHtml += '<col style="width: 50px;">';
+  colHtml += '<col style="width: 45px;">';
   colgroup.innerHTML = colHtml;
 
-  let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
+  // Header row without arrows
+  let headHtml = '<tr><th class="pinned">Symbol</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
       <th>
-        <div class="col-header">
-          <select class="col-select" onchange="changeColumnMetric(${idx}, this.value)">
-            ${generateMetricDropdownOptions(col.key)}
-          </select>
-          <span style="cursor:pointer; color:var(--text-muted); font-size:9px;" onclick="sortBy('${col.key}')">⬍</span>
-          <button class="btn-icon" onclick="removeColumn(${idx})" title="Remove column">✕</button>
-        </div>
+        <button class="col-title-btn" onclick="openMetricModal(${idx})">
+          ${cleanString(col.label)}
+        </button>
         <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
       </th>`;
   });
-  headHtml += `<th><button class="btn-add-col" onclick="openAddColumnModal()">+ Add</button></th></tr>`;
+  headHtml += `<th><button class="btn-add-col" onclick="openMetricModal(-1)">+ Add</button></th></tr>`;
   thead.innerHTML = headHtml;
 
   let visibleTickers = (CONFIG.activeGroup && CONFIG.activeGroup !== "All" && CONFIG.groups[CONFIG.activeGroup])
@@ -629,20 +687,11 @@ function renderTable() {
     rows.push(rowObj);
   }
 
-  if (SORT_COL) {
-    rows.sort((a, b) => {
-      let va = a[SORT_COL], vb = b[SORT_COL];
-      if (va === undefined || va === null) return 1;
-      if (vb === undefined || vb === null) return -1;
-      return SORT_ASC ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
-    });
-  }
-
   let bodyHtml = '';
   rows.forEach((r, idx) => {
     const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
     const curr = r.currency || "";
-    const indBenchmarks = r._industryBenchmark || {};
+    const indName = r.industry || "Default";
 
     bodyHtml += `
       <tr draggable="true" 
@@ -660,9 +709,10 @@ function renderTable() {
       let val = r[c.key];
       let formatted = formatVal(val, c.format, curr);
 
-      // Industry benchmark comparison (e.g. 18.5 / 22.4)
-      if (indBenchmarks[c.key] !== undefined && indBenchmarks[c.key] !== null) {
-        let indFormatted = formatVal(indBenchmarks[c.key], c.format, "");
+      // Industry benchmark lookup
+      let indVal = getIndustryBenchmark(indName, c.key);
+      if (indVal !== undefined && indVal !== null) {
+        let indFormatted = formatVal(indVal, c.format, "");
         formatted += ` <span class="ind-avg">/ ${indFormatted}</span>`;
       }
 
@@ -705,24 +755,6 @@ function generateMetricDropdownOptions(selectedKey) {
   return html;
 }
 
-function openAddColumnModal() {
-  document.getElementById('select-new-metric').innerHTML = generateMetricDropdownOptions("");
-  openModal('modal-add-col');
-}
-
-function confirmAddColumn() {
-  const key = document.getElementById('select-new-metric').value;
-  let meta = METRIC_MAP[key];
-  if (!meta) {
-    const f = (CONFIG.formulas || []).find(item => item.key === key);
-    meta = f ? { label: f.name, format: f.format } : { label: key, format: "number" };
-  }
-  CONFIG.columns.push({ key: key, label: meta.label, format: meta.format, width: 105 });
-  closeModal('modal-add-col');
-  renderTable();
-  saveToRepo(CONFIG);
-}
-
 function initResize(e, colIndex) {
   e.preventDefault();
   const startX = e.clientX;
@@ -744,40 +776,11 @@ function initResize(e, colIndex) {
   window.addEventListener('mouseup', stopDrag);
 }
 
-function sortBy(key) {
-  if (SORT_COL === key) SORT_ASC = !SORT_ASC;
-  else { SORT_COL = key; SORT_ASC = false; }
-  renderTable();
-}
-
-function changeColumnMetric(index, newKey) {
-  let meta = METRIC_MAP[newKey];
-  if (!meta) {
-    const f = (CONFIG.formulas || []).find(item => item.key === newKey);
-    meta = f ? { label: f.name, format: f.format } : { label: newKey, format: "number" };
-  }
-  CONFIG.columns[index].key = newKey;
-  CONFIG.columns[index].label = meta.label;
-  CONFIG.columns[index].format = meta.format;
-  renderTable();
-  saveToRepo(CONFIG);
-}
-
-function removeColumn(index) {
-  if (CONFIG.columns.length <= 1) {
-    alert("You must keep at least one column.");
-    return;
-  }
-  CONFIG.columns.splice(index, 1);
-  renderTable();
-  saveToRepo(CONFIG);
-}
-
 function formatVal(val, format, curr) {
   if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
   if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
   if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(1) + "%";
-  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 2});
+  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 1});
   if (format === "bignum") {
     const n = Number(val);
     if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
