@@ -14,11 +14,6 @@
       "format": "currency"
     },
     {
-      "key": "currency",
-      "label": "Curr",
-      "format": "text"
-    },
-    {
       "key": "marketCap",
       "label": "Mkt Cap",
       "format": "bignum"
@@ -74,78 +69,5 @@
       "format": "currency"
     }
   ],
-  "presets": {
-    "Default": [
-      "currentPrice",
-      "currency",
-      "marketCap",
-      "trailingPE",
-      "forwardPE",
-      "trailingEps",
-      "dividendYield"
-    ],
-    "Valuation": [
-      "currentPrice",
-      "marketCap",
-      "enterpriseValue",
-      "trailingPE",
-      "forwardPE",
-      "priceToBook",
-      "enterpriseToEbitda"
-    ],
-    "Profitability": [
-      "profitMargins",
-      "operatingMargins",
-      "grossMargins",
-      "returnOnEquity",
-      "returnOnAssets",
-      "ebitda"
-    ],
-    "Balance Sheet": [
-      "totalCash",
-      "totalDebt",
-      "debtToEquity",
-      "currentRatio",
-      "quickRatio",
-      "freeCashflow"
-    ],
-    "Dividends": [
-      "dividendRate",
-      "dividendYield",
-      "trailingAnnualDividendYield",
-      "payoutRatio",
-      "dividendDate",
-      "exDividendDate"
-    ]
-  },
-  "formulas": [],
-  "groups": {
-    "All": [
-      "VET.TO",
-      "VET",
-      "AMD",
-      "TM"
-    ],
-    "Tech": [
-      "AMD"
-    ],
-    "Energy": [
-      "VET.TO",
-      "VET"
-    ],
-    "Auto": [
-      "TM"
-    ]
-  },
-  "benchmarks": {
-    "Oil & Gas E&P": {
-      "asOf": "2024-01-01",
-      "source": "Manual Entry Example",
-      "values": {
-        "trailingPE": 8.5,
-        "profitMargins": 0.22,
-        "debtToEquity": 45
-      }
-    }
-  }
+  "formulas": []
 }
