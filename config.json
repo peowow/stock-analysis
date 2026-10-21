@@ -7,7 +7,8 @@
     "CLS",
     "NVDA",
     "VG",
-    "FM.TO"
+    "FM.TO",
+    "CSU.TO"
   ],
   "groups": {
     "All": [
@@ -16,7 +17,8 @@
       "AMD",
       "TM",
       "VG",
-      "FM.TO"
+      "FM.TO",
+      "CSU.TO"
     ],
     "Energy": [
       "VET.TO",
