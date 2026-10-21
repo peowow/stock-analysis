@@ -3,6 +3,9 @@ import sys
 import json
 import time
 import math
+import urllib.request
+import csv
+import io
 from datetime import datetime, timezone
 
 try:
@@ -13,8 +16,28 @@ except ImportError:
 
 CONFIG_FILE = "config.json"
 DATA_DIR = "data"
-HISTORY_DIR = os.path.join(DATA_DIR, "history")
 OUTPUT_DATA = os.path.join(DATA_DIR, "data.json")
+
+# Map common Yahoo industry names to Damodaran's industry classification
+DAMODARAN_MAP = {
+    "Semiconductors": "Semiconductor",
+    "Semiconductor Equipment & Materials": "Semiconductor Equip",
+    "Oil & Gas E&P": "Oil/Gas (Production and Exploration)",
+    "Oil & Gas Integrated": "Oil/Gas (Integrated)",
+    "Oil & Gas Refining & Marketing": "Oil/Gas (Refining and Marketing)",
+    "Auto Manufacturers": "Auto & Truck",
+    "Auto Parts": "Auto Parts",
+    "Software - Infrastructure": "Software (System & Application)",
+    "Software - Application": "Software (System & Application)",
+    "Internet Content & Information": "Information Services",
+    "Banks - Diversified": "Bank (Money Center)",
+    "Banks - Regional": "Banks (Regional)",
+    "Biotechnology": "Biotechnology",
+    "Drug Manufacturers - General": "Drugs (Pharmaceutical)",
+    "Consumer Electronics": "Computers/Peripherals",
+    "Telecom Services": "Telecom (Wireless)",
+    "Utilities - Regulated Electric": "Utility (General)"
+}
 
 def clean_val(val):
     if val is None:
@@ -24,6 +47,61 @@ def clean_val(val):
     if isinstance(val, float):
         return None if math.isnan(val) or math.isinf(val) else val
     return None
+
+def fetch_damodaran_benchmarks():
+    """Download Damodaran NYU Stern datasets for Valuation and Margins"""
+    benchmarks = {}
+    print("Fetching Damodaran NYU Stern industry benchmarks...")
+
+    # Valuation dataset (P/E, Price/Book, EV/EBITDA, EV/Sales)
+    url_pedata = "https://pages.stern.nyu.edu/~adamodar/pc/datasets/pedata.csv"
+    # Margins dataset (Gross, Operating, Net margins)
+    url_margin = "https://pages.stern.nyu.edu/~adamodar/pc/datasets/margin.csv"
+
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    def parse_csv_stream(url):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                lines = [line.decode('latin-1') for line in resp.readlines()]
+                return list(csv.reader(lines))
+        except Exception as e:
+            print(f"Warning: Could not fetch {url}: {e}")
+            return []
+
+    # Parse P/E & Valuation
+    rows_pe = parse_csv_stream(url_pedata)
+    for r in rows_pe:
+        if len(r) > 8 and r[0].strip() and r[0].strip() != "Industry Name":
+            ind_name = r[0].strip()
+            def safe_float(idx):
+                try: return float(r[idx].replace(',', '').replace('%', '').strip())
+                except: return None
+
+            benchmarks[ind_name] = {
+                "trailingPE": safe_float(4),
+                "forwardPE": safe_float(5),
+                "priceToBook": safe_float(6),
+                "enterpriseToEbitda": safe_float(8)
+            }
+
+    # Parse Margins
+    rows_m = parse_csv_stream(url_margin)
+    for r in rows_m:
+        if len(r) > 6 and r[0].strip():
+            ind_name = r[0].strip()
+            def safe_float_pct(idx):
+                try: return float(r[idx].replace(',', '').replace('%', '').strip())
+                except: return None
+
+            if ind_name in benchmarks:
+                benchmarks[ind_name]["grossMargins"] = safe_float_pct(2)
+                benchmarks[ind_name]["operatingMargins"] = safe_float_pct(4)
+                benchmarks[ind_name]["profitMargins"] = safe_float_pct(5)
+
+    print(f"Loaded benchmarks for {len(benchmarks)} Damodaran industries.")
+    return benchmarks
 
 def fetch_ticker_data(ticker_symbol):
     max_retries = 3
@@ -37,77 +115,27 @@ def fetch_ticker_data(ticker_symbol):
             info = t.info
             if not info or len(info) < 5:
                 raise ValueError("Incomplete info payload from Yahoo")
-            data = {"info": info, "ticker": t}
+            data = {"info": info}
             break
         except Exception as e:
             last_err = str(e)
             if attempt < max_retries - 1:
-                sleep_sec = backoff[attempt]
-                print(f"[{ticker_symbol}] Retry {attempt+1} after error: {last_err}. Sleeping {sleep_sec}s...")
-                time.sleep(sleep_sec)
+                time.sleep(backoff[attempt])
             else:
-                print(f"[{ticker_symbol}] Failed after {max_retries} attempts: {last_err}")
                 return None, last_err
         time.sleep(0.5)
 
     info = data["info"]
-    t = data["ticker"]
     scalars = {}
 
     for k, v in info.items():
         if isinstance(v, (int, float, str, bool)):
-            if k == "longBusinessSummary" and isinstance(v, str):
-                scalars[k] = v[:600]
-            else:
-                clean = clean_val(v)
-                if clean is not None:
-                    scalars[k] = clean
+            clean = clean_val(v)
+            if clean is not None:
+                scalars[k] = clean
 
-    # Fallback keys for compatibility
     if "currentPrice" not in scalars and "regularMarketPrice" in scalars:
         scalars["currentPrice"] = scalars["regularMarketPrice"]
-    if "fiftyTwoWeekChange" in info:
-        scalars["fiftyTwoWeekChange"] = clean_val(info["fiftyTwoWeekChange"])
-        scalars["alias_52WeekChange"] = scalars["fiftyTwoWeekChange"]
-
-    def extract_financials(df, prefix):
-        if df is None or df.empty:
-            return
-        try:
-            cols = list(df.columns)
-            for col_idx, col_date in enumerate(cols[:3]):
-                date_str = str(col_date)[:10]
-                scalars[f"{prefix}_date_{col_idx}"] = date_str
-                for row_name in df.index:
-                    clean_row = str(row_name).replace(" ", "").replace("-", "_")
-                    val = clean_val(df.loc[row_name, col_date])
-                    if val is not None:
-                        scalars[f"{prefix}_{clean_row}_{col_idx}"] = val
-        except Exception as fe:
-            print(f"[{ticker_symbol}] Financials warning: {fe}")
-
-    try:
-        extract_financials(t.income_stmt, "a_is")
-        extract_financials(t.quarterly_income_stmt, "q_is")
-        extract_financials(t.balance_sheet, "a_bs")
-        extract_financials(t.quarterly_balance_sheet, "q_bs")
-        extract_financials(t.cashflow, "a_cf")
-        extract_financials(t.quarterly_cashflow, "q_cf")
-    except Exception as fe:
-        print(f"[{ticker_symbol}] Statements warning: {fe}")
-
-    # Fetch 5-year price history
-    try:
-        os.makedirs(HISTORY_DIR, exist_ok=True)
-        hist = t.history(period="5y", interval="1d")
-        if not hist.empty:
-            dates = [d.strftime("%Y-%m-%d") for d in hist.index]
-            closes = [round(float(c), 2) for c in hist["Close"]]
-            hist_path = os.path.join(HISTORY_DIR, f"{ticker_symbol}.json")
-            with open(hist_path, "w", encoding="utf-8") as hf:
-                json.dump({"symbol": ticker_symbol, "dates": dates, "closes": closes}, hf, separators=(',', ':'))
-    except Exception as he:
-        print(f"[{ticker_symbol}] History error: {he}")
 
     return scalars, None
 
@@ -121,30 +149,33 @@ def main():
 
     tickers = config.get("tickers", [])
     if not tickers:
-        print("No tickers defined in config.json")
         sys.exit(0)
 
     os.makedirs(DATA_DIR, exist_ok=True)
+    damodaran = fetch_damodaran_benchmarks()
+
     all_data = {}
     errors = {}
     success_count = 0
 
-    print(f"Fetching data for {len(tickers)} tickers: {', '.join(tickers)}")
+    print(f"Fetching data for {len(tickers)} tickers...")
     for sym in tickers:
         sym_clean = sym.strip().upper()
         scalars, err = fetch_ticker_data(sym_clean)
         if scalars:
+            # Map industry benchmarks
+            raw_ind = scalars.get("industry", "")
+            mapped_ind = DAMODARAN_MAP.get(raw_ind, raw_ind)
+            scalars["_industryBenchmark"] = damodaran.get(mapped_ind, {})
+            scalars["_industryName"] = mapped_ind
+
             all_data[sym_clean] = scalars
             success_count += 1
-            print(f"-> SUCCESS: {sym_clean} ({len(scalars)} fields)")
+            print(f"-> SUCCESS: {sym_clean} ({raw_ind} -> {mapped_ind})")
         else:
             errors[sym_clean] = err
             print(f"-> FAIL: {sym_clean} - {err}")
         time.sleep(1.0)
-
-    if success_count == 0 and len(tickers) > 0:
-        print("FATAL: All tickers failed. Aborting without overwriting.")
-        sys.exit(1)
 
     output = {
         "updated": datetime.now(timezone.utc).isoformat(),
