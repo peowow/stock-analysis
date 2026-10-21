@@ -7,7 +7,8 @@
     "NVDA",
     "VG",
     "FM.TO",
-    "CSU.TO"
+    "CSU.TO",
+    "TRLV"
   ],
   "groups": {
     "All": [
@@ -16,7 +17,8 @@
       "TM",
       "VG",
       "FM.TO",
-      "CSU.TO"
+      "CSU.TO",
+      "TRLV"
     ],
     "Energy": [
       "VET.TO"
@@ -36,7 +38,7 @@
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 145
+      "width": 124
     },
     {
       "key": "forwardPE",
@@ -77,33 +79,7 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
-    },
-    {
-      "key": "formula_poop",
-      "label": "poop",
-      "format": "ratio",
-      "width": 85,
-      "isFormula": true
     }
   ],
-  "formulas": [
-    {
-      "key": "formula_poop",
-      "name": "poop",
-      "expr": "=average(forwardpe, trailing pe)",
-      "format": "ratio"
-    },
-    {
-      "key": "formula_poop",
-      "name": "poop",
-      "expr": "=average(forwardpe, trailing pe)",
-      "format": "ratio"
-    },
-    {
-      "key": "formula_poop",
-      "name": "poop",
-      "expr": "=(forwardPE + trailingPE)/2",
-      "format": "ratio"
-    }
-  ]
+  "formulas": []
 }
