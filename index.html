@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v8</title>
+<title>Stock Analysis v9</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
@@ -32,7 +32,6 @@
     padding: 4px 8px; border-radius: var(--radius); font-size: 12px;
   }
   
-  /* Groups / Watchlists Bar */
   .group-bar { display: flex; align-items: center; gap: 4px; overflow-x: auto; margin-bottom: 8px; padding-bottom: 4px; }
   .group-tab {
     padding: 4px 10px; border-radius: var(--radius); background: var(--surface2);
@@ -40,11 +39,9 @@
     align-items: center; gap: 6px; white-space: nowrap; user-select: none;
   }
   .group-tab.active { background: var(--primary); color: #0f172a; font-weight: bold; border-color: var(--primary); }
-  .group-tab.drag-over { border: 2px dashed #fff !important; transform: scale(1.05); }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
   
-  /* Compact Table & Resizing */
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
   table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
   th, td { padding: 4px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
@@ -53,10 +50,13 @@
   th.pinned { background: var(--surface2); z-index: 3; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
   
-  /* Stock Symbol: Pure White, Draggable */
+  tr.drag-row-over { border-top: 2px solid var(--primary) !important; }
+  
   .stock-cell { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
   .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .stock-symbol:active { cursor: grabbing; }
+
+  .ind-avg { color: var(--text-muted); font-size: 11px; opacity: 0.85; }
 
   .resizer {
     position: absolute; right: 0; top: 0; height: 100%; width: 5px;
@@ -77,7 +77,6 @@
   .btn-icon:hover { color: var(--red); }
   .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-  /* Formula Editor Styles */
   .formula-editor-wrap {
     position: relative; width: 100%; height: 50px; border: 1px solid var(--border);
     border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 8px;
@@ -115,7 +114,6 @@
   </div>
 </header>
 
-<!-- Interactive Group Tabs -->
 <div class="group-bar" id="group-bar"></div>
 
 <div class="toolbar">
@@ -156,7 +154,7 @@
   </div>
 </div>
 
-<!-- Modal: Formula Editor -->
+<!-- Modal: Formula -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
     <h2>Add Excel-Style Formula</h2>
@@ -186,7 +184,7 @@
   </div>
 </div>
 
-<!-- Modal: Manage & Delete Formulas -->
+<!-- Modal: Manage Formulas -->
 <div class="modal-overlay" id="modal-manage-formulas" onclick="if(event.target===this)closeModal('modal-manage-formulas')">
   <div class="modal">
     <h2>Manage Custom Formulas</h2>
@@ -211,7 +209,7 @@
 </details>
 
 <footer>
-  Data from Yahoo Finance via yfinance (unofficial). Not financial advice.
+  Stock Data via yfinance. Industry benchmarks from NYU Stern (Prof. Damodaran).
 </footer>
 
 <script>
@@ -221,31 +219,18 @@ const YAHOO_SECTIONS = {
     { key: "enterpriseValue", label: "Enterprise Value", format: "bignum" },
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
     { key: "forwardPE", label: "Forward P/E", format: "ratio" },
-    { key: "pegRatio", label: "PEG Ratio", format: "ratio" },
-    { key: "priceToSalesTrailing12Months", label: "Price/Sales", format: "ratio" },
     { key: "priceToBook", label: "Price/Book", format: "ratio" },
-    { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
     { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
   ],
   "Financials": [
     { key: "profitMargins", label: "Profit Margin", format: "percent" },
     { key: "operatingMargins", label: "Operating Margin", format: "percent" },
     { key: "grossMargins", label: "Gross Margin", format: "percent" },
-    { key: "returnOnAssets", label: "Return on Assets", format: "percent" },
-    { key: "returnOnEquity", label: "Return on Equity", format: "percent" },
     { key: "totalRevenue", label: "Revenue", format: "bignum" },
-    { key: "revenueGrowth", label: "Rev Growth", format: "percent" },
     { key: "ebitda", label: "EBITDA", format: "bignum" },
-    { key: "netIncomeToCommon", label: "Net Income", format: "bignum" },
     { key: "trailingEps", label: "EPS", format: "number" },
-    { key: "forwardEps", label: "Forward EPS", format: "number" },
-    { key: "totalCash", label: "Total Cash", format: "bignum" },
     { key: "totalDebt", label: "Total Debt", format: "bignum" },
-    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
-    { key: "currentRatio", label: "Current Ratio", format: "ratio" },
-    { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
-    { key: "operatingCashflow", label: "Operating CF", format: "bignum" },
-    { key: "freeCashflow", label: "Free CF", format: "bignum" }
+    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" }
   ],
   "Trading": [
     { key: "currentPrice", label: "Price", format: "currency" },
@@ -253,15 +238,11 @@ const YAHOO_SECTIONS = {
     { key: "beta", label: "Beta", format: "number" },
     { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
     { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
-    { key: "fiftyDayAverage", label: "50-Day MA", format: "currency" },
-    { key: "twoHundredDayAverage", label: "200-Day MA", format: "currency" },
     { key: "targetMeanPrice", label: "Target Price", format: "currency" }
   ],
   "Dividends": [
     { key: "dividendRate", label: "Dividend Rate", format: "currency" },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent" },
-    { key: "trailingAnnualDividendYield", label: "Trailing Div Yield", format: "percent" },
-    { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
+    { key: "dividendYield", label: "Dividend Yield", format: "percent" }
   ]
 };
 
@@ -276,26 +257,22 @@ const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"
 
 let CONFIG = {
   tickers: ["VET.TO", "VET", "AMD", "TM"],
-  groups: {
-    "All": ["VET.TO", "VET", "AMD", "TM"],
-    "Energy": ["VET.TO", "VET"],
-    "Tech": ["AMD"]
-  },
+  groups: { "All": ["VET.TO", "VET", "AMD", "TM"] },
   activeGroup: "All",
   columns: [
-    { key: "currentPrice", label: "Price", format: "currency", width: 90 },
+    { key: "currentPrice", label: "Price", format: "currency", width: 95 },
     { key: "currency", label: "Currency", format: "text", width: 60 },
-    { key: "marketCap", label: "Market Cap", format: "bignum", width: 95 },
-    { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 85 },
-    { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 85 },
-    { key: "trailingEps", label: "EPS", format: "number", width: 75 },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent", width: 85 }
+    { key: "marketCap", label: "Market Cap", format: "bignum", width: 100 },
+    { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 110 },
+    { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 110 },
+    { key: "trailingEps", label: "EPS", format: "number", width: 80 },
+    { key: "profitMargins", label: "Profit Margin", format: "percent", width: 110 }
   ],
   formulas: []
 };
 
 let DATA = { updated: null, tickers: {}, errors: {} };
-let SORT_COL = "marketCap";
+let SORT_COL = null;
 let SORT_ASC = false;
 
 function cleanString(str) {
@@ -391,7 +368,6 @@ function evaluateExcelFormula(expr, row) {
         if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
       }
 
-      // Check specific stock targeted formula (e.g. AMD.currentPrice)
       if (t.includes('.')) {
         const [sym, metric] = t.split('.');
         const targetStock = DATA.tickers[sym.toUpperCase()];
@@ -488,7 +464,7 @@ async function saveFormula() {
   const formulaKey = "formula_" + name.replace(/[^A-Za-z0-9_]/g, '_');
 
   CONFIG.formulas.push({ key: formulaKey, name: name, expr: expr, format: format });
-  CONFIG.columns.push({ key: formulaKey, label: name, format: format, width: 85, isFormula: true });
+  CONFIG.columns.push({ key: formulaKey, label: name, format: format, width: 95, isFormula: true });
 
   await saveToRepo(CONFIG);
   closeModal('modal-formula');
@@ -529,7 +505,6 @@ function deleteFormula(idx) {
   renderTable();
 }
 
-/* Groups System */
 function renderGroups() {
   const bar = document.getElementById('group-bar');
   if (!CONFIG.groups) CONFIG.groups = { "All": CONFIG.tickers };
@@ -539,11 +514,7 @@ function renderGroups() {
   for (const g of Object.keys(CONFIG.groups)) {
     const isActive = (CONFIG.activeGroup === g) ? 'active' : '';
     html += `
-      <div class="group-tab ${isActive}" 
-           onclick="setActiveGroup('${cleanString(g)}')" 
-           ondragover="event.preventDefault(); this.classList.add('drag-over');"
-           ondragleave="this.classList.remove('drag-over');"
-           ondrop="dropOnGroup(event, '${cleanString(g)}')">
+      <div class="group-tab ${isActive}" onclick="setActiveGroup('${cleanString(g)}')">
         <span>${cleanString(g)}</span>
         ${g !== 'All' ? `<span style="font-size:10px; opacity:0.6;" onclick="event.stopPropagation(); deleteGroup('${cleanString(g)}')">✕</span>` : ''}
       </div>`;
@@ -580,16 +551,35 @@ function deleteGroup(g) {
   }
 }
 
-function dropOnGroup(e, targetGroup) {
+// Drag & Drop to Reorder Rows
+let draggedIndex = null;
+
+function onRowDragStart(e, idx) {
+  draggedIndex = idx;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onRowDragOver(e, rowEl) {
   e.preventDefault();
-  const sym = e.dataTransfer.getData("text/plain");
-  if (!sym || targetGroup === "All") return;
-  if (!CONFIG.groups[targetGroup].includes(sym)) {
-    CONFIG.groups[targetGroup].push(sym);
-    renderGroups();
-    renderTable();
-    saveToRepo(CONFIG);
-  }
+  rowEl.classList.add('drag-row-over');
+}
+
+function onRowDragLeave(rowEl) {
+  rowEl.classList.remove('drag-row-over');
+}
+
+function onRowDrop(e, targetIdx, rowEl) {
+  e.preventDefault();
+  rowEl.classList.remove('drag-row-over');
+  if (draggedIndex === null || draggedIndex === targetIdx) return;
+
+  const currentList = (CONFIG.activeGroup === "All") ? CONFIG.tickers : CONFIG.groups[CONFIG.activeGroup];
+  const moved = currentList.splice(draggedIndex, 1)[0];
+  currentList.splice(targetIdx, 0, moved);
+
+  SORT_COL = null; // Clear sorting so manual drag order takes effect
+  renderTable();
+  saveToRepo(CONFIG);
 }
 
 function renderTable() {
@@ -599,15 +589,13 @@ function renderTable() {
   const tbody = document.getElementById('table-body');
   const search = document.getElementById('search-box').value.trim().toUpperCase();
 
-  // Column definitions
   let colHtml = '<col style="width: 85px;">';
   CONFIG.columns.forEach(c => {
-    colHtml += `<col style="width: ${c.width || 85}px;">`;
+    colHtml += `<col style="width: ${c.width || 105}px;">`;
   });
   colHtml += '<col style="width: 50px;">';
   colgroup.innerHTML = colHtml;
 
-  // Header row
   let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
@@ -625,13 +613,10 @@ function renderTable() {
   headHtml += `<th><button class="btn-add-col" onclick="openAddColumnModal()">+ Add</button></th></tr>`;
   thead.innerHTML = headHtml;
 
-  // Filter stocks by active group
-  let visibleTickers = CONFIG.tickers || [];
-  if (CONFIG.activeGroup && CONFIG.activeGroup !== "All" && CONFIG.groups[CONFIG.activeGroup]) {
-    visibleTickers = CONFIG.groups[CONFIG.activeGroup];
-  }
+  let visibleTickers = (CONFIG.activeGroup && CONFIG.activeGroup !== "All" && CONFIG.groups[CONFIG.activeGroup])
+    ? CONFIG.groups[CONFIG.activeGroup]
+    : CONFIG.tickers || [];
 
-  // Rows
   let rows = [];
   for (const sym of visibleTickers) {
     if (search && !sym.toUpperCase().includes(search)) continue;
@@ -644,35 +629,47 @@ function renderTable() {
     rows.push(rowObj);
   }
 
-  rows.sort((a, b) => {
-    let va = a[SORT_COL], vb = b[SORT_COL];
-    if (va === undefined || va === null) return 1;
-    if (vb === undefined || vb === null) return -1;
-    return SORT_ASC ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
-  });
+  if (SORT_COL) {
+    rows.sort((a, b) => {
+      let va = a[SORT_COL], vb = b[SORT_COL];
+      if (va === undefined || va === null) return 1;
+      if (vb === undefined || vb === null) return -1;
+      return SORT_ASC ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+  }
 
   let bodyHtml = '';
-  for (const r of rows) {
+  rows.forEach((r, idx) => {
     const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
     const curr = r.currency || "";
+    const indBenchmarks = r._industryBenchmark || {};
+
     bodyHtml += `
-      <tr>
+      <tr draggable="true" 
+          ondragstart="onRowDragStart(event, ${idx})" 
+          ondragover="onRowDragOver(event, this)" 
+          ondragleave="onRowDragLeave(this)" 
+          ondrop="onRowDrop(event, ${idx}, this)">
         <td class="pinned">
           <div class="stock-cell">
-            <a class="stock-symbol" href="${yahooUrl}" target="_blank" rel="noopener noreferrer" 
-               draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '${r.symbol}')">
-              ${cleanString(r.symbol)}
-            </a>
+            <a class="stock-symbol" href="${yahooUrl}" target="_blank" rel="noopener noreferrer">${cleanString(r.symbol)}</a>
             <button class="btn-icon" onclick="deleteStock('${r.symbol}')" title="Delete stock">✕</button>
           </div>
         </td>`;
     for (const c of CONFIG.columns) {
       let val = r[c.key];
       let formatted = formatVal(val, c.format, curr);
+
+      // Industry benchmark comparison (e.g. 18.5 / 22.4)
+      if (indBenchmarks[c.key] !== undefined && indBenchmarks[c.key] !== null) {
+        let indFormatted = formatVal(indBenchmarks[c.key], c.format, "");
+        formatted += ` <span class="ind-avg">/ ${indFormatted}</span>`;
+      }
+
       bodyHtml += `<td>${formatted}</td>`;
     }
     bodyHtml += `<td></td></tr>`;
-  }
+  });
   tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:15px;">No tickers in this group.</td></tr>';
 }
 
@@ -720,7 +717,7 @@ function confirmAddColumn() {
     const f = (CONFIG.formulas || []).find(item => item.key === key);
     meta = f ? { label: f.name, format: f.format } : { label: key, format: "number" };
   }
-  CONFIG.columns.push({ key: key, label: meta.label, format: meta.format, width: 90 });
+  CONFIG.columns.push({ key: key, label: meta.label, format: meta.format, width: 105 });
   closeModal('modal-add-col');
   renderTable();
   saveToRepo(CONFIG);
@@ -729,7 +726,7 @@ function confirmAddColumn() {
 function initResize(e, colIndex) {
   e.preventDefault();
   const startX = e.clientX;
-  const startWidth = CONFIG.columns[colIndex].width || 85;
+  const startWidth = CONFIG.columns[colIndex].width || 105;
 
   function doDrag(e) {
     const newWidth = Math.max(50, startWidth + (e.clientX - startX));
