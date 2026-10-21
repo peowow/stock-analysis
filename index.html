@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v4</title>
+<title>Stock Analysis v6</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #f8fafc;
-    --text-muted: #94a3b8; --border: #334155; --primary: #38bdf8; --primary-hover: #0284c7;
+    --text-muted: #94a3b8; --border: #334155; --primary: #38bdf8;
     --green: #4ade80; --red: #f87171; --radius: 8px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
       --bg: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9; --text: #0f172a;
-      --text-muted: #64748b; --border: #cbd5e1; --primary: #0284c7; --primary-hover: #0369a1;
+      --text-muted: #64748b; --border: #cbd5e1; --primary: #0284c7;
       --green: #16a34a; --red: #dc2626;
     }
   }
@@ -27,7 +27,7 @@
   }
   button.primary { background: var(--primary); color: #0f172a; font-weight: 600; border: none; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  input, select, textarea {
+  input, select {
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
     padding: 6px 10px; border-radius: var(--radius); font-size: 13px;
   }
@@ -35,17 +35,45 @@
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 20px; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: right; }
   th, td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  th { background: var(--surface2); font-weight: 600; cursor: pointer; user-select: none; }
-  th:hover { color: var(--primary); }
+  th { background: var(--surface2); font-weight: 600; text-align: right; }
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; }
   th.pinned { background: var(--surface2); z-index: 3; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
+  .col-header { display: inline-flex; align-items: center; gap: 4px; }
+  .col-select {
+    background: transparent; color: var(--text); border: none; font-weight: 600;
+    font-size: 12px; cursor: pointer; outline: none; text-align: right;
+  }
+  .col-select option { background: var(--surface); color: var(--text); }
+  .btn-remove-col {
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 11px; padding: 0 4px; border-radius: 4px;
+  }
+  .btn-remove-col:hover { color: var(--red); background: rgba(248,113,113,0.15); }
+  .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+  .btn-add-col:hover { background: var(--surface2); }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; z-index: 100; padding: 12px; }
   .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 650px; max-height: 85vh; overflow-y: auto; padding: 16px; }
   .modal h2 { margin-bottom: 12px; font-size: 16px; }
   .setup-box { margin-top: 24px; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-size: 13px; background: var(--surface); }
-  .field-cat { font-weight: bold; color: var(--primary); margin: 10px 0 4px 0; font-size: 12px; text-transform: uppercase; }
-  .field-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: var(--surface2); border-radius: 4px; margin-bottom: 4px; font-size: 12px; }
+
+  /* Formula Editor Styles */
+  .formula-editor-wrap {
+    position: relative; width: 100%; height: 60px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 8px;
+  }
+  .formula-highlight, .formula-textarea {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 8px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+    border: none; outline: none; background: transparent; margin: 0;
+  }
+  .formula-textarea { color: transparent; caret-color: var(--text); resize: none; z-index: 2; }
+  .formula-highlight { z-index: 1; pointer-events: none; }
+  .token-metric { color: #38bdf8; font-weight: 700; text-decoration: underline; }
+  .token-fn { color: #c084fc; font-weight: 700; }
+  .token-num { color: #fb923c; }
+
   footer { margin-top: 24px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 12px; }
 </style>
 </head>
@@ -58,7 +86,6 @@
   </div>
   <div style="display:flex; flex-wrap:wrap; gap:6px;">
     <button id="btn-refresh" class="primary" onclick="triggerRefresh()">↻ Refresh Now</button>
-    <button onclick="openModal('modal-columns')">Columns</button>
     <button onclick="openModal('modal-add-ticker')">+ Ticker</button>
     <button onclick="openModal('modal-formula')">+ Formula</button>
   </div>
@@ -66,8 +93,6 @@
 
 <div class="toolbar">
   <input type="text" id="search-box" placeholder="Search symbol..." oninput="renderTable()">
-  <select id="group-filter" onchange="renderTable()"><option value="All">All Groups</option></select>
-  <select id="preset-selector" onchange="applyPreset(this.value)"><option value="">Presets...</option></select>
   <button onclick="exportCSV()">Export CSV</button>
 </div>
 
@@ -76,18 +101,6 @@
     <thead id="table-head"></thead>
     <tbody id="table-body"></tbody>
   </table>
-</div>
-
-<!-- Columns Modal -->
-<div class="modal-overlay" id="modal-columns" onclick="if(event.target===this)closeModal('modal-columns')">
-  <div class="modal">
-    <h2>Columns & Metrics</h2>
-    <input type="text" id="field-search" placeholder="Search metrics..." oninput="renderFieldPicker()" style="width:100%; margin-bottom: 10px;">
-    <div id="field-picker-list" style="max-height: 50vh; overflow-y:auto;"></div>
-    <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
-      <button onclick="closeModal('modal-columns')">Done</button>
-    </div>
-  </div>
 </div>
 
 <!-- Add Ticker Modal -->
@@ -105,9 +118,26 @@
 <!-- Formula Modal -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
-    <h2>Add Custom Formula</h2>
-    <input type="text" id="formula-name" placeholder="Column Name (e.g. Upside %)" style="width:100%; margin-bottom:8px;">
-    <input type="text" id="formula-expr" placeholder="e.g. (targetMeanPrice - currentPrice) / currentPrice * 100" style="width:100%; margin-bottom:8px;">
+    <h2>Add Excel-Style Formula</h2>
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+      Type recognized Yahoo metrics (turns <span style="color:#38bdf8; font-weight:bold;">blue</span>) and Excel functions like <code>IF()</code>, <code>ABS()</code>, <code>ROUND()</code>.
+    </p>
+    <input type="text" id="formula-name" placeholder="Formula Column Name (e.g. Price to EPS)" style="width:100%; margin-bottom:8px;">
+    
+    <div class="formula-editor-wrap">
+      <div id="formula-highlight" class="formula-highlight"></div>
+      <textarea id="formula-input" class="formula-textarea" placeholder="=(currentPrice / trailingEps)" oninput="onFormulaType()" spellcheck="false"></textarea>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <select id="formula-format" style="flex:1;">
+        <option value="number">Format: Decimal Number (1.23)</option>
+        <option value="percent">Format: Percentage (12.3%)</option>
+        <option value="currency">Format: Currency ($12.34)</option>
+      </select>
+    </div>
+
+    <div id="formula-preview" style="font-size:12px; margin-bottom:12px; min-height:18px;"></div>
     <div style="display:flex; justify-content:flex-end; gap:8px;">
       <button onclick="closeModal('modal-formula')">Cancel</button>
       <button class="primary" onclick="saveFormula()">Save Formula</button>
@@ -127,7 +157,7 @@
   </div>
 </div>
 
-<details class="setup-box" open>
+<details class="setup-box">
   <summary style="cursor:pointer; font-weight:600;">GitHub Token & Setup (One-Time Per Device)</summary>
   <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
     <p style="font-size:12px; color:var(--text-muted);">
@@ -148,31 +178,76 @@
 </footer>
 
 <script>
-const YAHOO_CATEGORIES = {
-  "Valuation Measures": ["marketCap", "enterpriseValue", "trailingPE", "forwardPE", "pegRatio", "priceToSalesTrailing12Months", "priceToBook", "enterpriseToRevenue", "enterpriseToEbitda"],
-  "Financial Highlights": ["profitMargins", "operatingMargins", "returnOnAssets", "returnOnEquity", "totalRevenue", "revenueGrowth", "ebitda", "netIncomeToCommon", "trailingEps", "totalCash", "totalDebt", "debtToEquity", "currentRatio", "freeCashflow"],
-  "Trading Information": ["beta", "52WeekChange", "fiftyTwoWeekHigh", "fiftyTwoWeekLow", "fiftyDayAverage", "twoHundredDayAverage"],
-  "Dividends & Splits": ["dividendRate", "dividendYield", "trailingAnnualDividendYield", "payoutRatio", "dividendDate", "exDividendDate"]
+const YAHOO_SECTIONS = {
+  "Valuation Measures": [
+    { key: "marketCap", label: "Market Cap", format: "bignum" },
+    { key: "enterpriseValue", label: "Enterprise Value", format: "bignum" },
+    { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
+    { key: "forwardPE", label: "Forward P/E", format: "ratio" },
+    { key: "pegRatio", label: "PEG Ratio", format: "ratio" },
+    { key: "priceToSalesTrailing12Months", label: "Price/Sales", format: "ratio" },
+    { key: "priceToBook", label: "Price/Book", format: "ratio" },
+    { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
+    { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
+  ],
+  "Financial Highlights": [
+    { key: "profitMargins", label: "Profit Margin", format: "percent" },
+    { key: "operatingMargins", label: "Operating Margin", format: "percent" },
+    { key: "grossMargins", label: "Gross Margin", format: "percent" },
+    { key: "returnOnAssets", label: "Return on Assets", format: "percent" },
+    { key: "returnOnEquity", label: "Return on Equity", format: "percent" },
+    { key: "totalRevenue", label: "Total Revenue", format: "bignum" },
+    { key: "revenueGrowth", label: "Revenue Growth", format: "percent" },
+    { key: "ebitda", label: "EBITDA", format: "bignum" },
+    { key: "netIncomeToCommon", label: "Net Income", format: "bignum" },
+    { key: "trailingEps", label: "Diluted EPS", format: "number" },
+    { key: "forwardEps", label: "Forward EPS", format: "number" },
+    { key: "totalCash", label: "Total Cash", format: "bignum" },
+    { key: "totalDebt", label: "Total Debt", format: "bignum" },
+    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
+    { key: "currentRatio", label: "Current Ratio", format: "ratio" },
+    { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
+    { key: "operatingCashflow", label: "Operating Cash Flow", format: "bignum" },
+    { key: "freeCashflow", label: "Free Cash Flow", format: "bignum" }
+  ],
+  "Trading Information": [
+    { key: "currentPrice", label: "Price", format: "currency" },
+    { key: "currency", label: "Currency", format: "text" },
+    { key: "beta", label: "Beta", format: "number" },
+    { key: "fiftyTwoWeekHigh", label: "52-Week High", format: "currency" },
+    { key: "fiftyTwoWeekLow", label: "52-Week Low", format: "currency" },
+    { key: "fiftyDayAverage", label: "50-Day Moving Avg", format: "currency" },
+    { key: "twoHundredDayAverage", label: "200-Day Moving Avg", format: "currency" },
+    { key: "targetMeanPrice", label: "Analyst Target Price", format: "currency" }
+  ],
+  "Dividends & Splits": [
+    { key: "dividendRate", label: "Forward Dividend Rate", format: "currency" },
+    { key: "dividendYield", label: "Dividend Yield", format: "percent" },
+    { key: "trailingAnnualDividendYield", label: "Trailing Div Yield", format: "percent" },
+    { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
+  ]
 };
+
+const METRIC_MAP = {};
+for (const sec of Object.values(YAHOO_SECTIONS)) {
+  for (const item of sec) {
+    METRIC_MAP[item.key] = item;
+  }
+}
+
+const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"];
 
 let CONFIG = {
   tickers: ["VET.TO", "VET", "AMD", "TM"],
   columns: [
     { key: "currentPrice", label: "Price", format: "currency" },
-    { key: "currency", label: "Curr", format: "text" },
-    { key: "marketCap", label: "Mkt Cap", format: "bignum" },
+    { key: "currency", label: "Currency", format: "text" },
+    { key: "marketCap", label: "Market Cap", format: "bignum" },
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
     { key: "forwardPE", label: "Forward P/E", format: "ratio" },
-    { key: "trailingEps", label: "EPS", format: "number" },
-    { key: "dividendYield", label: "Div Yield", format: "percent" },
-    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
-    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
-    { key: "beta", label: "Beta", format: "number" },
-    { key: "profitMargins", label: "Profit Margin", format: "percent" },
-    { key: "debtToEquity", label: "Debt/Eq", format: "ratio" },
-    { key: "targetMeanPrice", label: "Target Price", format: "currency"}
+    { key: "trailingEps", label: "Diluted EPS", format: "number" },
+    { key: "dividendYield", label: "Dividend Yield", format: "percent" }
   ],
-  presets: {},
   formulas: []
 };
 
@@ -183,119 +258,229 @@ let SORT_ASC = false;
 function cleanString(str) {
   return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 }
-
 function cleanToken(token) {
   return String(token || '').replace(/[^A-Za-z0-9_-]/g, '').trim();
 }
-
 function getStored(key) {
   try { return localStorage.getItem(key) || ""; } catch (e) { return ""; }
 }
-
 function setStored(key, val) {
   try { localStorage.setItem(key, val); } catch (e) {}
 }
-
 function toBase64Unicode(str) {
   return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
     return String.fromCharCode(parseInt(p1, 16));
   }));
 }
 
-async function saveGitHubConfig() {
-  const repoInput = document.getElementById('github-repo').value.trim();
-  const tokenInput = cleanToken(document.getElementById('github-token').value);
-  const status = document.getElementById('token-status');
+// Check if an identifier is a recognized Yahoo metric from real data or dictionary
+function isRecognizedMetric(name) {
+  if (METRIC_MAP[name]) return true;
+  for (const t of Object.values(DATA.tickers || {})) {
+    if (t && t[name] !== undefined) return true;
+  }
+  return false;
+}
 
-  if (!repoInput || !tokenInput) {
-    status.style.color = "var(--red)";
-    status.innerText = "Please fill in both the repository and the token.";
+// Highlight recognized tokens as the user types
+function onFormulaType() {
+  const raw = document.getElementById('formula-input').value;
+  const highlightEl = document.getElementById('formula-highlight');
+
+  // Tokenize preserving spaces & symbols
+  const tokenRegex = /([A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|[\+\-\*\/\^\(\),<>=!]+|\s+)/g;
+  let tokens = raw.match(tokenRegex) || [];
+  let html = '';
+
+  for (const t of tokens) {
+    const upper = t.toUpperCase();
+    if (EXCEL_FUNCTIONS.includes(upper)) {
+      html += `<span class="token-fn">${cleanString(t)}</span>`;
+    } else if (isRecognizedMetric(t)) {
+      html += `<span class="token-metric">${cleanString(t)}</span>`;
+    } else if (/^\d+\.?\d*$/.test(t)) {
+      html += `<span class="token-num">${cleanString(t)}</span>`;
+    } else {
+      html += cleanString(t);
+    }
+  }
+  highlightEl.innerHTML = html;
+  previewFormulaLive();
+}
+
+// Safe Excel Formula Evaluator
+function evaluateExcelFormula(expr, row) {
+  try {
+    let clean = expr.trim();
+    if (clean.startsWith('=')) clean = clean.slice(1).trim();
+    if (!clean) return null;
+
+    let tokens = clean.match(/[A-Za-z_][A-Za-z0-9_]*|\d+\.?\d*|<=|>=|==|!=|<|>|[\+\-\*\/\^\(\),]/g);
+    if (!tokens) return null;
+    let pos = 0;
+
+    function parseArgs() {
+      let args = [];
+      if (tokens[pos] === ')') return args;
+      args.push(parseExpression());
+      while (tokens[pos] === ',') {
+        pos++;
+        args.push(parseExpression());
+      }
+      return args;
+    }
+
+    function parsePrimary() {
+      let t = tokens[pos++];
+      if (!t) throw new Error("Unexpected end");
+      if (t === '(') {
+        let v = parseExpression();
+        if (tokens[pos++] !== ')') throw new Error("Missing )");
+        return v;
+      }
+      if (/^\d+\.?\d*$/.test(t)) return parseFloat(t);
+
+      // Function calls: IF, ABS, ROUND, etc.
+      let upper = t.toUpperCase();
+      if (tokens[pos] === '(' && EXCEL_FUNCTIONS.includes(upper)) {
+        pos++; // skip '('
+        let args = parseArgs();
+        if (tokens[pos++] !== ')') throw new Error("Missing ) in function");
+        if (upper === 'IF') return args[0] ? args[1] : args[2];
+        if (upper === 'ABS') return Math.abs(args[0]);
+        if (upper === 'ROUND') return Number(args[0].toFixed(args[1] || 0));
+        if (upper === 'MIN') return Math.min(...args);
+        if (upper === 'MAX') return Math.max(...args);
+        if (upper === 'SQRT') return Math.sqrt(args[0]);
+        if (upper === 'LN') return Math.log(args[0]);
+        if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
+      }
+
+      // Recognized metric variable
+      if (/^[A-Za-z_]/.test(t)) {
+        let val = row[t];
+        if (val === undefined || val === null) return NaN;
+        return Number(val);
+      }
+      throw new Error("Syntax error");
+    }
+
+    function parseFactor() {
+      let v = parsePrimary();
+      while (tokens[pos] === '^') { pos++; v = Math.pow(v, parseFactor()); }
+      return v;
+    }
+
+    function parseTerm() {
+      let v = parseFactor();
+      while (tokens[pos] === '*' || tokens[pos] === '/') {
+        let op = tokens[pos++];
+        let r = parseFactor();
+        v = (op === '*') ? v * r : (r === 0 ? NaN : v / r);
+      }
+      return v;
+    }
+
+    function parseAddSub() {
+      let v = parseTerm();
+      while (tokens[pos] === '+' || tokens[pos] === '-') {
+        let op = tokens[pos++];
+        v = (op === '+') ? v + parseTerm() : v - parseTerm();
+      }
+      return v;
+    }
+
+    function parseExpression() {
+      let left = parseAddSub();
+      const cmp = tokens[pos];
+      if (['<', '>', '<=', '>=', '==', '!='].includes(cmp)) {
+        pos++;
+        let right = parseAddSub();
+        if (cmp === '<') return left < right ? 1 : 0;
+        if (cmp === '>') return left > right ? 1 : 0;
+        if (cmp === '<=') return left <= right ? 1 : 0;
+        if (cmp === '>=') return left >= right ? 1 : 0;
+        if (cmp === '==') return left === right ? 1 : 0;
+        if (cmp === '!=') return left !== right ? 1 : 0;
+      }
+      return left;
+    }
+
+    let result = parseExpression();
+    return Number.isFinite(result) ? result : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function previewFormulaLive() {
+  const expr = document.getElementById('formula-input').value;
+  const preview = document.getElementById('formula-preview');
+  const firstTicker = (CONFIG.tickers && CONFIG.tickers[0]) || null;
+
+  if (!expr.trim()) {
+    preview.innerHTML = '';
+    return;
+  }
+  if (!firstTicker || !DATA.tickers[firstTicker]) {
+    preview.innerHTML = '<span style="color:var(--text-muted)">Awaiting ticker data for preview.</span>';
     return;
   }
 
-  setStored('sa_repo', repoInput);
-  setStored('sa_token', tokenInput);
+  const sampleVal = evaluateExcelFormula(expr, DATA.tickers[firstTicker]);
+  if (sampleVal !== null) {
+    preview.innerHTML = `<span style="color:var(--green)">✓ Valid preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
+  } else {
+    preview.innerHTML = `<span style="color:var(--red)">⚠ Incomplete or invalid formula</span>`;
+  }
+}
 
-  status.style.color = "var(--green)";
-  status.innerText = "✓ Credentials saved successfully!";
-  await loadConfig();
-  await loadData();
+async function saveFormula() {
+  const name = document.getElementById('formula-name').value.trim();
+  const expr = document.getElementById('formula-input').value.trim();
+  const format = document.getElementById('formula-format').value;
+
+  if (!name || !expr) {
+    alert("Please provide both a name and a formula expression.");
+    return;
+  }
+
+  if (!CONFIG.formulas) CONFIG.formulas = [];
+  const formulaKey = "formula_" + name.replace(/[^A-Za-z0-9_]/g, '_');
+
+  CONFIG.formulas.push({ key: formulaKey, name: name, expr: expr, format: format });
+  CONFIG.columns.push({ key: formulaKey, label: name, format: format, isFormula: true });
+
+  await saveToRepo(CONFIG);
+  closeModal('modal-formula');
+  document.getElementById('formula-name').value = '';
+  document.getElementById('formula-input').value = '';
+  document.getElementById('formula-highlight').innerHTML = '';
+  document.getElementById('formula-preview').innerHTML = '';
   renderTable();
 }
 
-function clearGitHubConfig() {
-  try {
-    localStorage.removeItem('sa_token');
-    localStorage.removeItem('sa_repo');
-  } catch(e) {}
-  document.getElementById('github-repo').value = "peowow/stock-analysis";
-  document.getElementById('github-token').value = "";
-  document.getElementById('token-status').style.color = "var(--text-muted)";
-  document.getElementById('token-status').innerText = "Credentials cleared.";
-}
-
-async function loadData() {
-  const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo') || "peowow/stock-analysis";
-  const statusEl = document.getElementById('update-status');
-
-  let urls = [`https://raw.githubusercontent.com/${repo}/main/data/data.json?t=${Date.now()}`];
-  if (token && repo) {
-    urls.unshift(`https://api.github.com/repos/${repo}/contents/data/data.json`);
+function generateMetricDropdownOptions(selectedKey) {
+  let html = '';
+  // Custom formulas group
+  if (CONFIG.formulas && CONFIG.formulas.length > 0) {
+    html += `<optgroup label="Custom Formulas">`;
+    for (const f of CONFIG.formulas) {
+      const isSel = (f.key === selectedKey) ? 'selected' : '';
+      html += `<option value="${f.key}" ${isSel}>${cleanString(f.name)}</option>`;
+    }
+    html += `</optgroup>`;
   }
-
-  for (let url of urls) {
-    try {
-      const headers = (url.includes('api.github.com'))
-        ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw+json' }
-        : {};
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        DATA = await res.json();
-        statusEl.innerText = 'Last updated: ' + new Date(DATA.updated).toLocaleString();
-        return;
-      }
-    } catch (e) {}
+  // Yahoo sections
+  for (const [secTitle, metrics] of Object.entries(YAHOO_SECTIONS)) {
+    html += `<optgroup label="${cleanString(secTitle)}">`;
+    for (const m of metrics) {
+      const isSel = (m.key === selectedKey) ? 'selected' : '';
+      html += `<option value="${m.key}" ${isSel}>${cleanString(m.label)}</option>`;
+    }
+    html += `</optgroup>`;
   }
-}
-
-async function loadConfig() {
-  const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo') || "peowow/stock-analysis";
-
-  let urls = [`https://raw.githubusercontent.com/${repo}/main/config.json?t=${Date.now()}`];
-  if (token && repo) {
-    urls.unshift(`https://api.github.com/repos/${repo}/contents/config.json`);
-  }
-
-  for (let url of urls) {
-    try {
-      const headers = (url.includes('api.github.com'))
-        ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw+json' }
-        : {};
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        const loaded = await res.json();
-        CONFIG = Object.assign(CONFIG, loaded);
-        return;
-      }
-    } catch (e) {}
-  }
-}
-
-function formatVal(val, format, curr) {
-  if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
-  if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(2) + "%";
-  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 2});
-  if (format === "bignum") {
-    const n = Number(val);
-    if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
-    if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
-    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
-    return n.toLocaleString();
-  }
-  return cleanString(String(val));
+  return html;
 }
 
 function renderTable() {
@@ -303,16 +488,20 @@ function renderTable() {
   const tbody = document.getElementById('table-body');
   const search = document.getElementById('search-box').value.trim().toUpperCase();
 
-  let cols = [...(CONFIG.columns || [])];
-  for (const f of (CONFIG.formulas || [])) {
-    cols.push({ key: f.name, label: f.name, format: "number" });
-  }
-
-  let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')">Symbol</th>';
-  for (const c of cols) {
-    headHtml += `<th onclick="sortBy('${cleanString(c.key)}')">${cleanString(c.label)}</th>`;
-  }
-  headHtml += '</tr>';
+  let headHtml = '<tr><th class="pinned" onclick="sortBy(\'symbol\')" style="cursor:pointer;">Symbol ⬍</th>';
+  CONFIG.columns.forEach((col, idx) => {
+    headHtml += `
+      <th>
+        <div class="col-header">
+          <select class="col-select" onchange="changeColumnMetric(${idx}, this.value)">
+            ${generateMetricDropdownOptions(col.key)}
+          </select>
+          <span style="cursor:pointer; color:var(--text-muted); font-size:10px;" onclick="sortBy('${col.key}')">⬍</span>
+          <button class="btn-remove-col" onclick="removeColumn(${idx})" title="Remove column">✕</button>
+        </div>
+      </th>`;
+  });
+  headHtml += `<th><button class="btn-add-col" onclick="addColumn()" title="Add another column">+ Add Col</button></th></tr>`;
   thead.innerHTML = headHtml;
 
   let rows = [];
@@ -320,6 +509,11 @@ function renderTable() {
     if (search && !sym.toUpperCase().includes(search)) continue;
     const tickerData = (DATA.tickers && DATA.tickers[sym]) || {};
     let rowObj = { symbol: sym, ...tickerData };
+
+    // Calculate user formulas for this stock
+    for (const f of (CONFIG.formulas || [])) {
+      rowObj[f.key] = evaluateExcelFormula(f.expr, tickerData);
+    }
     rows.push(rowObj);
   }
 
@@ -335,20 +529,47 @@ function renderTable() {
     const yahooUrl = `https://finance.yahoo.com/quote/${r.symbol.replace('^', '%5E')}`;
     const curr = r.currency || "";
     bodyHtml += `<tr><td class="pinned"><b><a href="${yahooUrl}" target="_blank" rel="noopener noreferrer">${cleanString(r.symbol)}</a></b> <button style="padding:1px 5px; font-size:10px;" onclick="showDetail('${r.symbol}')">ⓘ</button></td>`;
-    for (const c of cols) {
+    for (const c of CONFIG.columns) {
       let val = r[c.key];
       let formatted = formatVal(val, c.format, curr);
       bodyHtml += `<td>${formatted}</td>`;
     }
-    bodyHtml += '</tr>';
+    bodyHtml += `<td></td></tr>`;
   }
-  tbody.innerHTML = bodyHtml || '<tr><td colspan="15" style="text-align:center; padding:20px;">No tickers to display.</td></tr>';
+  tbody.innerHTML = bodyHtml || '<tr><td colspan="20" style="text-align:center; padding:20px;">No tickers to display.</td></tr>';
 }
 
 function sortBy(key) {
   if (SORT_COL === key) SORT_ASC = !SORT_ASC;
   else { SORT_COL = key; SORT_ASC = false; }
   renderTable();
+}
+
+function changeColumnMetric(index, newKey) {
+  let meta = METRIC_MAP[newKey];
+  if (!meta) {
+    const formula = (CONFIG.formulas || []).find(f => f.key === newKey);
+    meta = formula ? { label: formula.name, format: formula.format } : { label: newKey, format: "number" };
+  }
+  CONFIG.columns[index] = { key: newKey, label: meta.label, format: meta.format };
+  renderTable();
+  saveToRepo(CONFIG);
+}
+
+function addColumn() {
+  CONFIG.columns.push({ key: "beta", label: "Beta", format: "number" });
+  renderTable();
+  saveToRepo(CONFIG);
+}
+
+function removeColumn(index) {
+  if (CONFIG.columns.length <= 1) {
+    alert("You must keep at least one column.");
+    return;
+  }
+  CONFIG.columns.splice(index, 1);
+  renderTable();
+  saveToRepo(CONFIG);
 }
 
 async function triggerRefresh() {
@@ -394,52 +615,6 @@ async function triggerRefresh() {
   }
 }
 
-async function saveToRepo(newConfig) {
-  const token = cleanToken(getStored('sa_token'));
-  const repo = getStored('sa_repo') || "peowow/stock-analysis";
-  if (!token || !repo) {
-    alert("Token required to save to GitHub.");
-    return false;
-  }
-  try {
-    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json?ref=main`, {
-      headers: { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/vnd.github.v3+json' 
-      }
-    });
-    if (!getRes.ok) throw new Error("Could not fetch current config. HTTP " + getRes.status);
-    const fileData = await getRes.json();
-    const sha = fileData.sha;
-
-    const jsonString = JSON.stringify(newConfig, null, 2);
-    const content = toBase64Unicode(jsonString);
-
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
-      method: 'PUT',
-      headers: { 
-        'Authorization': `Bearer ${token}`, 
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        message: "Update config.json from web app", 
-        content: content, 
-        sha: sha,
-        branch: "main"
-      })
-    });
-
-    if (!putRes.ok) throw new Error("Save rejected by GitHub: HTTP " + putRes.status);
-    CONFIG = newConfig;
-    renderTable();
-    return true;
-  } catch (e) {
-    alert("Error: " + e.message);
-    return false;
-  }
-}
-
 async function addTicker() {
   const input = document.getElementById('new-ticker-input');
   const btn = document.getElementById('btn-confirm-add');
@@ -462,6 +637,173 @@ async function addTicker() {
   }
   btn.disabled = false;
   btn.innerText = "Add Ticker";
+}
+
+function showDetail(sym) {
+  const d = (DATA.tickers && DATA.tickers[sym]) || {};
+  document.getElementById('detail-title').innerText = `${sym} - Detail View`;
+  document.getElementById('detail-summary').innerText = d.longBusinessSummary || "No business summary available.";
+  let fieldsHtml = '<table style="width:100%;">';
+  for (const k of Object.keys(d).sort()) {
+    if (k === "longBusinessSummary") continue;
+    fieldsHtml += `<tr><td style="text-align:left; color:var(--text-muted); font-size:11px;">${cleanString(k)}</td><td style="font-size:11px;">${cleanString(String(d[k]))}</td></tr>`;
+  }
+  fieldsHtml += '</table>';
+  document.getElementById('detail-fields').innerHTML = fieldsHtml;
+  openModal('modal-detail');
+}
+
+function formatVal(val, format, curr) {
+  if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
+  if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(2) + "%";
+  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 2});
+  if (format === "bignum") {
+    const n = Number(val);
+    if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
+    if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
+    return n.toLocaleString();
+  }
+  return cleanString(String(val));
+}
+
+async function loadData() {
+  const token = cleanToken(getStored('sa_token'));
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
+  const statusEl = document.getElementById('update-status');
+
+  let urls = [`https://raw.githubusercontent.com/${repo}/main/data/data.json?t=${Date.now()}`];
+  if (token && repo) {
+    urls.unshift(`https://api.github.com/repos/${repo}/contents/data/data.json`);
+  }
+
+  for (let url of urls) {
+    try {
+      const headers = (url.includes('api.github.com'))
+        ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw+json' }
+        : {};
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        DATA = await res.json();
+        statusEl.innerText = 'Last updated: ' + new Date(DATA.updated).toLocaleString();
+        return;
+      }
+    } catch (e) {}
+  }
+}
+
+async function loadConfig() {
+  const token = cleanToken(getStored('sa_token'));
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
+
+  let urls = [`https://raw.githubusercontent.com/${repo}/main/config.json?t=${Date.now()}`];
+  if (token && repo) {
+    urls.unshift(`https://api.github.com/repos/${repo}/contents/config.json`);
+  }
+
+  for (let url of urls) {
+    try {
+      const headers = (url.includes('api.github.com'))
+        ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw+json' }
+        : {};
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const loaded = await res.json();
+        if (loaded.columns) CONFIG.columns = loaded.columns;
+        if (loaded.tickers) CONFIG.tickers = loaded.tickers;
+        if (loaded.formulas) CONFIG.formulas = loaded.formulas;
+        return;
+      }
+    } catch (e) {}
+  }
+}
+
+async function saveToRepo(newConfig) {
+  const token = cleanToken(getStored('sa_token'));
+  const repo = getStored('sa_repo') || "peowow/stock-analysis";
+  if (!token || !repo) {
+    CONFIG = newConfig;
+    renderTable();
+    return true;
+  }
+  try {
+    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json?ref=main`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!getRes.ok) throw new Error("Fetch config error: HTTP " + getRes.status);
+    const fileData = await getRes.json();
+    const sha = fileData.sha;
+
+    const content = toBase64Unicode(JSON.stringify(newConfig, null, 2));
+
+    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
+      method: 'PUT',
+      headers: { 
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        message: "Update config via web app", 
+        content: content, 
+        sha: sha,
+        branch: "main"
+      })
+    });
+    if (!putRes.ok) throw new Error("HTTP " + putRes.status);
+    CONFIG = newConfig;
+    renderTable();
+    return true;
+  } catch (e) {
+    console.warn("Save error:", e);
+    return false;
+  }
+}
+
+function saveGitHubConfig() {
+  const repoInput = document.getElementById('github-repo').value.trim();
+  const tokenInput = cleanToken(document.getElementById('github-token').value);
+  const status = document.getElementById('token-status');
+
+  if (!repoInput || !tokenInput) {
+    status.style.color = "var(--red)";
+    status.innerText = "Please fill in both the repository and token.";
+    return;
+  }
+  setStored('sa_repo', repoInput);
+  setStored('sa_token', tokenInput);
+  status.style.color = "var(--green)";
+  status.innerText = "✓ Credentials saved!";
+  init();
+}
+
+function clearGitHubConfig() {
+  try {
+    localStorage.removeItem('sa_token');
+    localStorage.removeItem('sa_repo');
+  } catch(e) {}
+  document.getElementById('github-repo').value = "peowow/stock-analysis";
+  document.getElementById('github-token').value = "";
+  document.getElementById('token-status').innerText = "";
+}
+
+function exportCSV() {
+  let cols = [...CONFIG.columns];
+  let csv = ['Symbol,' + cols.map(c => `"${c.label}"`).join(',')];
+  for (const sym of CONFIG.tickers) {
+    const d = (DATA.tickers && DATA.tickers[sym]) || {};
+    let row = [sym];
+    for (const c of cols) {
+      row.push(`"${d[c.key] !== undefined ? d[c.key] : ''}"`);
+    }
+    csv.push(row.join(','));
+  }
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `stock_analysis_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
 }
 
 function openModal(id) { document.getElementById(id).style.display = 'grid'; }
