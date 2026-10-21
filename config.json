@@ -8,7 +8,9 @@
     "VG",
     "FM.TO",
     "CSU.TO",
-    "TRLV"
+    "TRLV",
+    "FSLR",
+    "AC.TO"
   ],
   "groups": {
     "All": [
@@ -18,7 +20,9 @@
       "VG",
       "FM.TO",
       "CSU.TO",
-      "TRLV"
+      "TRLV",
+      "FSLR",
+      "AC.TO"
     ],
     "Energy": [
       "VET.TO"
