@@ -20,7 +20,8 @@
     "AQN.TO",
     "BYDDY",
     "GOOG",
-    "GTII.CN"
+    "GTII.CN",
+    "LNG"
   ],
   "groups": {
     "All": [
@@ -42,7 +43,8 @@
       "KEY.TO",
       "GTII.CN",
       "CNQ.TO",
-      "PEY.TO"
+      "PEY.TO",
+      "LNG"
     ],
     "Energy": [
       "VET.TO"
@@ -137,6 +139,12 @@
       "width": 70
     },
     {
+      "key": "operatingCashflow",
+      "label": "Operating CF",
+      "format": "bignum",
+      "width": 85
+    },
+    {
       "key": "pegRatio",
       "label": "PEG Ratio",
       "format": "ratio",
@@ -146,12 +154,6 @@
       "key": "grossMargins",
       "label": "Gross Margin",
       "format": "percent",
-      "width": 85
-    },
-    {
-      "key": "operatingCashflow",
-      "label": "Operating CF",
-      "format": "bignum",
       "width": 85
     }
   ],
