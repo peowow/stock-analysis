@@ -93,7 +93,7 @@
       "key": "operatingMargins",
       "label": "Operating Margin",
       "format": "percent",
-      "width": 35
+      "width": 109
     },
     {
       "key": "payoutRatio",
