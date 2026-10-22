@@ -161,6 +161,12 @@
       "label": "Gross Margin",
       "format": "percent",
       "width": 102
+    },
+    {
+      "key": "enterpriseValue",
+      "label": "Enterprise Value",
+      "format": "bignum",
+      "width": 85
     }
   ],
   "formulas": [
