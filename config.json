@@ -95,13 +95,6 @@
       "label": "Average PE",
       "format": "ratio",
       "width": 105
-    },
-    {
-      "key": "formula_blah",
-      "label": "blah",
-      "format": "ratio",
-      "width": 95,
-      "isFormula": true
     }
   ],
   "formulas": [
