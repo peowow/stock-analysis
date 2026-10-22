@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v10</title>
+<title>Stock Analysis v11</title>
 <style>
   :root {
     --bg: #140e0a;
@@ -60,7 +60,6 @@
   .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .stock-symbol:active { cursor: grabbing; }
 
-  /* Minimal Column Header (No arrows) */
   .col-title-btn {
     background: transparent; border: none; color: var(--text); font-weight: 600;
     font-size: 12px; cursor: pointer; padding: 0; outline: none; text-align: right; width: 100%;
@@ -82,9 +81,10 @@
   .btn-icon:hover { color: var(--red); }
   .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
+  /* Formula Editor Styles */
   .formula-editor-wrap {
     position: relative; width: 100%; height: 50px; border: 1px solid var(--border);
-    border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 8px;
+    border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 6px;
   }
   .formula-highlight, .formula-textarea {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 6px 8px;
@@ -97,8 +97,19 @@
   .token-fn { color: #c084fc; font-weight: 700; }
   .token-num { color: #fb923c; }
 
+  /* Click-to-insert Chips */
+  .chip-container {
+    display: flex; flex-wrap: wrap; gap: 4px; max-height: 90px; overflow-y: auto;
+    padding: 6px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .metric-chip {
+    background: var(--surface3); border: 1px solid var(--border); color: var(--text);
+    padding: 2px 6px; border-radius: 4px; font-size: 10px; cursor: pointer;
+  }
+  .metric-chip:hover { background: var(--primary); color: #fff; }
+
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; place-items: center; z-index: 100; padding: 12px; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 16px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; padding: 16px; }
   .modal h2 { margin-bottom: 10px; font-size: 15px; }
   .setup-box { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 12px; background: var(--surface); }
   footer { margin-top: 20px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 8px; }
@@ -135,11 +146,12 @@
   </table>
 </div>
 
-<!-- Modal: Select Metric for Column -->
+<!-- Modal: Metric Selector for Column Header -->
 <div class="modal-overlay" id="modal-metric-picker" onclick="if(event.target===this)closeModal('modal-metric-picker')">
   <div class="modal">
     <h2 id="metric-modal-title">Select Metric</h2>
-    <select id="metric-modal-select" style="width:100%; margin-bottom:12px;"></select>
+    <input type="text" id="picker-search" placeholder="Search metric name..." oninput="filterMetricModalOptions()" style="width:100%; margin-bottom:8px;">
+    <select id="metric-modal-select" size="10" style="width:100%; margin-bottom:12px; height:180px;"></select>
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <button id="btn-delete-col" style="color:var(--red); border-color:var(--red);" onclick="confirmDeleteCurrentCol()">Delete Column</button>
       <div style="display:flex; gap:8px;">
@@ -162,25 +174,30 @@
   </div>
 </div>
 
-<!-- Modal: Formula -->
+<!-- Modal: Formula Editor with Click-to-Insert -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
     <h2>Add Excel-Style Formula</h2>
-    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
-      Metrics turn <span style="color:#38bdf8; font-weight:bold;">blue</span>. You can target specific stocks like <code>AMD.currentPrice</code>.
-    </p>
-    <input type="text" id="formula-name" placeholder="Column Name (e.g. Vs AMD Price)" style="width:100%; margin-bottom:6px;">
+    <input type="text" id="formula-name" placeholder="Column Name (e.g. PE / Margin)" style="width:100%; margin-bottom:6px;">
     
     <div class="formula-editor-wrap">
       <div id="formula-highlight" class="formula-highlight"></div>
-      <textarea id="formula-input" class="formula-textarea" placeholder="=currentPrice / AMD.currentPrice" oninput="onFormulaType()" spellcheck="false"></textarea>
+      <textarea id="formula-input" class="formula-textarea" placeholder="=(forwardPE + trailingPE) / 2" oninput="onFormulaType()" spellcheck="false"></textarea>
     </div>
+
+    <!-- Metric Search & Click-to-Insert Chips -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <span style="font-size:11px; color:var(--text-muted);">Click any metric below to insert:</span>
+      <input type="text" id="chip-filter" placeholder="Filter metrics..." oninput="renderFormulaChips()" style="font-size:10px; padding:2px 6px; width:120px;">
+    </div>
+    <div class="chip-container" id="chip-container"></div>
 
     <div style="display:flex; gap:8px; margin-bottom:8px;">
       <select id="formula-format" style="flex:1;">
         <option value="ratio">Ratio / Decimal (15.2)</option>
         <option value="percent">Percentage (15.2%)</option>
         <option value="currency">Currency ($15.20)</option>
+        <option value="bignum">Large Number (1.2B)</option>
       </select>
     </div>
 
@@ -221,62 +238,105 @@
 </footer>
 
 <script>
-// Built-in NYU Stern Industry Benchmark Datasets
-const DAMODARAN_BENCHMARKS = {
-  "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2 },
-  "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4 },
-  "Oil & Gas E&P": { trailingPE: 8.6, forwardPE: 9.2, profitMargins: 24.1, operatingMargins: 29.5, grossMargins: 52.8, debtToEquity: 34.5 },
-  "Oil & Gas Integrated": { trailingPE: 10.4, forwardPE: 10.1, profitMargins: 11.2, operatingMargins: 14.5, grossMargins: 38.6, debtToEquity: 28.1 },
-  "Software - Infrastructure": { trailingPE: 42.1, forwardPE: 31.5, profitMargins: 16.4, operatingMargins: 21.3, grossMargins: 68.2, debtToEquity: 22.4 },
-  "Software - Application": { trailingPE: 38.6, forwardPE: 28.2, profitMargins: 14.8, operatingMargins: 18.9, grossMargins: 66.5, debtToEquity: 19.8 },
-  "Aerospace & Defense": { trailingPE: 26.5, forwardPE: 21.2, profitMargins: 6.8, operatingMargins: 9.8, grossMargins: 23.4, debtToEquity: 64.2 },
-  "Solar": { trailingPE: 22.4, forwardPE: 18.6, profitMargins: 9.5, operatingMargins: 13.2, grossMargins: 26.8, debtToEquity: 42.1 },
-  "Airlines": { trailingPE: 9.4, forwardPE: 8.2, profitMargins: 4.8, operatingMargins: 7.6, grossMargins: 24.2, debtToEquity: 125.4 },
-  "Copper": { trailingPE: 14.2, forwardPE: 12.8, profitMargins: 12.4, operatingMargins: 19.5, grossMargins: 34.2, debtToEquity: 41.2 },
-  "Other Industrial Metals & Mining": { trailingPE: 13.8, forwardPE: 11.9, profitMargins: 11.5, operatingMargins: 17.8, grossMargins: 31.8, debtToEquity: 38.5 },
-  "Information Technology Services": { trailingPE: 24.5, forwardPE: 20.1, profitMargins: 8.4, operatingMargins: 12.1, grossMargins: 32.5, debtToEquity: 31.2 },
-  "Default": { trailingPE: 22.5, forwardPE: 18.4, profitMargins: 10.2, operatingMargins: 14.1, grossMargins: 36.2, debtToEquity: 45.0 }
-};
-
+// Comprehensive Metric Dictionary (~70 Yahoo Metrics)
 const YAHOO_SECTIONS = {
-  "Valuation": [
+  "Valuation Measures": [
     { key: "marketCap", label: "Market Cap", format: "bignum" },
     { key: "enterpriseValue", label: "Enterprise Value", format: "bignum" },
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
     { key: "forwardPE", label: "Forward P/E", format: "ratio" },
+    { key: "pegRatio", label: "PEG Ratio", format: "ratio" },
+    { key: "priceToSalesTrailing12Months", label: "Price/Sales (TTM)", format: "ratio" },
     { key: "priceToBook", label: "Price/Book", format: "ratio" },
+    { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
     { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
   ],
-  "Financials": [
+  "Financial Highlights & Margins": [
     { key: "profitMargins", label: "Profit Margin", format: "percent" },
     { key: "operatingMargins", label: "Operating Margin", format: "percent" },
     { key: "grossMargins", label: "Gross Margin", format: "percent" },
-    { key: "totalRevenue", label: "Revenue", format: "bignum" },
+    { key: "ebitdaMargins", label: "EBITDA Margin", format: "percent" },
+    { key: "returnOnAssets", label: "Return on Assets (ROA)", format: "percent" },
+    { key: "returnOnEquity", label: "Return on Equity (ROE)", format: "percent" },
+    { key: "totalRevenue", label: "Total Revenue", format: "bignum" },
+    { key: "revenuePerShare", label: "Revenue Per Share", format: "number" },
+    { key: "revenueGrowth", label: "Quarterly Revenue Growth", format: "percent" },
+    { key: "grossProfits", label: "Gross Profit", format: "bignum" },
     { key: "ebitda", label: "EBITDA", format: "bignum" },
-    { key: "trailingEps", label: "EPS", format: "number" },
-    { key: "totalDebt", label: "Total Debt", format: "bignum" },
-    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" }
+    { key: "netIncomeToCommon", label: "Net Income to Common", format: "bignum" },
+    { key: "trailingEps", label: "Diluted EPS (TTM)", format: "number" },
+    { key: "forwardEps", label: "Forward EPS", format: "number" },
+    { key: "earningsGrowth", label: "Quarterly Earnings Growth", format: "percent" }
   ],
-  "Trading": [
-    { key: "currentPrice", label: "Price", format: "currency" },
+  "Balance Sheet & Liquidity": [
+    { key: "totalCash", label: "Total Cash", format: "bignum" },
+    { key: "totalCashPerShare", label: "Total Cash Per Share", format: "number" },
+    { key: "totalDebt", label: "Total Debt", format: "bignum" },
+    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
+    { key: "currentRatio", label: "Current Ratio", format: "ratio" },
+    { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
+    { key: "bookValue", label: "Book Value Per Share", format: "number" }
+  ],
+  "Cash Flow": [
+    { key: "operatingCashflow", label: "Operating Cash Flow", format: "bignum" },
+    { key: "freeCashflow", label: "Free Cash Flow", format: "bignum" }
+  ],
+  "Trading & Moving Averages": [
+    { key: "currentPrice", label: "Current Price", format: "currency" },
     { key: "currency", label: "Currency", format: "text" },
     { key: "beta", label: "Beta", format: "number" },
-    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
-    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
-    { key: "targetMeanPrice", label: "Target Price", format: "currency" }
+    { key: "fiftyTwoWeekHigh", label: "52-Week High", format: "currency" },
+    { key: "fiftyTwoWeekLow", label: "52-Week Low", format: "currency" },
+    { key: "fiftyDayAverage", label: "50-Day Moving Average", format: "currency" },
+    { key: "twoHundredDayAverage", label: "200-Day Moving Average", format: "currency" },
+    { key: "targetMeanPrice", label: "Analyst Target Price", format: "currency" },
+    { key: "targetHighPrice", label: "Analyst Target High", format: "currency" },
+    { key: "targetLowPrice", label: "Analyst Target Low", format: "currency" }
   ],
-  "Dividends": [
-    { key: "dividendRate", label: "Dividend Rate", format: "currency" },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent" }
+  "Share Statistics": [
+    { key: "sharesOutstanding", label: "Shares Outstanding", format: "bignum" },
+    { key: "floatShares", label: "Float Shares", format: "bignum" },
+    { key: "sharesShort", label: "Shares Short", format: "bignum" },
+    { key: "shortRatio", label: "Short Ratio", format: "ratio" },
+    { key: "shortPercentOfFloat", label: "Short % of Float", format: "percent" }
+  ],
+  "Dividends & Splits": [
+    { key: "dividendRate", label: "Forward Dividend Rate", format: "currency" },
+    { key: "dividendYield", label: "Dividend Yield", format: "percent" },
+    { key: "trailingAnnualDividendRate", label: "Trailing Div Rate", format: "currency" },
+    { key: "trailingAnnualDividendYield", label: "Trailing Div Yield", format: "percent" },
+    { key: "fiveYearAvgDividendYield", label: "5-Year Avg Div Yield", format: "percent" },
+    { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
   ]
 };
 
+// Flattened lookup and case-insensitive mapper
 const METRIC_MAP = {};
+const CASE_INSENSITIVE_MAP = {};
+
 for (const sec of Object.values(YAHOO_SECTIONS)) {
   for (const item of sec) {
     METRIC_MAP[item.key] = item;
+    CASE_INSENSITIVE_MAP[item.key.toLowerCase()] = item.key;
   }
 }
+
+// Built-in NYU Stern Benchmarks
+const DAMODARAN_BENCHMARKS = {
+  "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2, priceToBook: 4.8 },
+  "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4, priceToBook: 1.1 },
+  "Oil & Gas E&P": { trailingPE: 8.6, forwardPE: 9.2, profitMargins: 24.1, operatingMargins: 29.5, grossMargins: 52.8, debtToEquity: 34.5, priceToBook: 1.4 },
+  "Oil & Gas Integrated": { trailingPE: 10.4, forwardPE: 10.1, profitMargins: 11.2, operatingMargins: 14.5, grossMargins: 38.6, debtToEquity: 28.1, priceToBook: 1.6 },
+  "Software - Infrastructure": { trailingPE: 42.1, forwardPE: 31.5, profitMargins: 16.4, operatingMargins: 21.3, grossMargins: 68.2, debtToEquity: 22.4, priceToBook: 7.8 },
+  "Software - Application": { trailingPE: 38.6, forwardPE: 28.2, profitMargins: 14.8, operatingMargins: 18.9, grossMargins: 66.5, debtToEquity: 19.8, priceToBook: 6.9 },
+  "Aerospace & Defense": { trailingPE: 26.5, forwardPE: 21.2, profitMargins: 6.8, operatingMargins: 9.8, grossMargins: 23.4, debtToEquity: 64.2, priceToBook: 3.2 },
+  "Solar": { trailingPE: 22.4, forwardPE: 18.6, profitMargins: 9.5, operatingMargins: 13.2, grossMargins: 26.8, debtToEquity: 42.1, priceToBook: 2.1 },
+  "Airlines": { trailingPE: 9.4, forwardPE: 8.2, profitMargins: 4.8, operatingMargins: 7.6, grossMargins: 24.2, debtToEquity: 125.4, priceToBook: 1.5 },
+  "Copper": { trailingPE: 14.2, forwardPE: 12.8, profitMargins: 12.4, operatingMargins: 19.5, grossMargins: 34.2, debtToEquity: 41.2, priceToBook: 2.0 },
+  "Other Industrial Metals & Mining": { trailingPE: 13.8, forwardPE: 11.9, profitMargins: 11.5, operatingMargins: 17.8, grossMargins: 31.8, debtToEquity: 38.5, priceToBook: 1.8 },
+  "Information Technology Services": { trailingPE: 24.5, forwardPE: 20.1, profitMargins: 8.4, operatingMargins: 12.1, grossMargins: 32.5, debtToEquity: 31.2, priceToBook: 3.6 },
+  "Default": { trailingPE: 22.5, forwardPE: 18.4, profitMargins: 10.2, operatingMargins: 14.1, grossMargins: 36.2, debtToEquity: 45.0, priceToBook: 2.8 }
+};
 
 const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"];
 
@@ -297,7 +357,7 @@ let CONFIG = {
 };
 
 let DATA = { updated: null, tickers: {}, errors: {} };
-let editingColIdx = null; // Used for modal metric picker
+let editingColIdx = null;
 
 function cleanString(str) {
   return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
@@ -322,25 +382,62 @@ function getIndustryBenchmark(industryName, key) {
   return ind[key];
 }
 
+// Render searchable metric chips in Formula Modal
+function renderFormulaChips() {
+  const filter = (document.getElementById('chip-filter').value || '').toLowerCase();
+  const container = document.getElementById('chip-container');
+  let html = '';
+
+  for (const [key, item] of Object.entries(METRIC_MAP)) {
+    if (key.toLowerCase().includes(filter) || item.label.toLowerCase().includes(filter)) {
+      html += `<span class="metric-chip" onclick="insertMetricToFormula('${key}')">${cleanString(item.label)} <small style="opacity:0.6;">(${key})</small></span>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+function insertMetricToFormula(key) {
+  const input = document.getElementById('formula-input');
+  const pos = input.selectionStart || input.value.length;
+  input.value = input.value.slice(0, pos) + key + input.value.slice(pos);
+  onFormulaType();
+  input.focus();
+}
+
 function openMetricModal(colIdx) {
   editingColIdx = colIdx;
   const isNew = (colIdx === -1);
   document.getElementById('metric-modal-title').innerText = isNew ? "Add New Column" : "Change Column Metric";
   document.getElementById('btn-delete-col').style.display = isNew ? "none" : "block";
-
-  const sel = document.getElementById('metric-modal-select');
-  const currentKey = isNew ? "" : CONFIG.columns[colIdx].key;
-  sel.innerHTML = generateMetricDropdownOptions(currentKey);
+  document.getElementById('picker-search').value = "";
+  filterMetricModalOptions();
   openModal('modal-metric-picker');
+}
+
+function filterMetricModalOptions() {
+  const search = (document.getElementById('picker-search').value || '').toLowerCase();
+  const sel = document.getElementById('metric-modal-select');
+  const currentKey = (editingColIdx >= 0) ? CONFIG.columns[editingColIdx].key : "";
+  let html = '';
+
+  for (const [secTitle, metrics] of Object.entries(YAHOO_SECTIONS)) {
+    let filtered = metrics.filter(m => m.label.toLowerCase().includes(search) || m.key.toLowerCase().includes(search));
+    if (filtered.length > 0) {
+      html += `<optgroup label="${cleanString(secTitle)}">`;
+      for (const m of filtered) {
+        const isSel = (m.key === currentKey) ? 'selected' : '';
+        html += `<option value="${m.key}" ${isSel}>${cleanString(m.label)} (${m.key})</option>`;
+      }
+      html += `</optgroup>`;
+    }
+  }
+  sel.innerHTML = html;
 }
 
 function confirmMetricSelection() {
   const newKey = document.getElementById('metric-modal-select').value;
-  let meta = METRIC_MAP[newKey];
-  if (!meta) {
-    const f = (CONFIG.formulas || []).find(item => item.key === newKey);
-    meta = f ? { label: f.name, format: f.format } : { label: newKey, format: "number" };
-  }
+  if (!newKey) return;
+  let meta = METRIC_MAP[newKey] || { label: newKey, format: "number" };
 
   if (editingColIdx === -1) {
     CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 105 });
@@ -367,13 +464,11 @@ function confirmDeleteCurrentCol() {
   }
 }
 
-function isRecognizedToken(name) {
-  if (METRIC_MAP[name]) return true;
-  if (name.includes('.')) {
-    const [sym, metric] = name.split('.');
-    return METRIC_MAP[metric] !== undefined;
-  }
-  return false;
+function resolveMetricName(token) {
+  if (METRIC_MAP[token]) return token;
+  const lower = token.toLowerCase();
+  if (CASE_INSENSITIVE_MAP[lower]) return CASE_INSENSITIVE_MAP[lower];
+  return null;
 }
 
 function onFormulaType() {
@@ -387,7 +482,7 @@ function onFormulaType() {
     const upper = t.toUpperCase();
     if (EXCEL_FUNCTIONS.includes(upper)) {
       html += `<span class="token-fn">${cleanString(t)}</span>`;
-    } else if (isRecognizedToken(t)) {
+    } else if (resolveMetricName(t) || t.includes('.')) {
       html += `<span class="token-metric">${cleanString(t)}</span>`;
     } else if (/^\d+\.?\d*$/.test(t)) {
       html += `<span class="token-num">${cleanString(t)}</span>`;
@@ -442,15 +537,19 @@ function evaluateExcelFormula(expr, row) {
         if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
       }
 
+      // Stock targeted metric: e.g. AMD.currentPrice
       if (t.includes('.')) {
-        const [sym, metric] = t.split('.');
+        const [sym, metricRaw] = t.split('.');
+        const realMetric = resolveMetricName(metricRaw) || metricRaw;
         const targetStock = DATA.tickers[sym.toUpperCase()];
-        if (targetStock && targetStock[metric] !== undefined) return Number(targetStock[metric]);
+        if (targetStock && targetStock[realMetric] !== undefined) return Number(targetStock[realMetric]);
         return NaN;
       }
 
-      if (/^[A-Za-z_]/.test(t)) {
-        let val = row[t];
+      // Case-insensitive resolved metric
+      const resolved = resolveMetricName(t);
+      if (resolved) {
+        let val = row[resolved];
         if (val === undefined || val === null) return NaN;
         return Number(val);
       }
@@ -518,9 +617,9 @@ function previewFormulaLive() {
 
   const sampleVal = evaluateExcelFormula(expr, DATA.tickers[firstTicker]);
   if (sampleVal !== null) {
-    preview.innerHTML = `<span style="color:var(--green)">✓ Live Preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
+    preview.innerHTML = `<span style="color:var(--green)">✓ Valid preview (${firstTicker}): <b>${sampleVal.toFixed(2)}</b></span>`;
   } else {
-    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula</span>`;
+    preview.innerHTML = `<span style="color:var(--red)">⚠ Check formula expression</span>`;
   }
 }
 
@@ -657,7 +756,6 @@ function renderTable() {
   colHtml += '<col style="width: 45px;">';
   colgroup.innerHTML = colHtml;
 
-  // Header row without arrows
   let headHtml = '<tr><th class="pinned">Symbol</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
@@ -709,7 +807,6 @@ function renderTable() {
       let val = r[c.key];
       let formatted = formatVal(val, c.format, curr);
 
-      // Industry benchmark lookup
       let indVal = getIndustryBenchmark(indName, c.key);
       if (indVal !== undefined && indVal !== null) {
         let indFormatted = formatVal(indVal, c.format, "");
@@ -732,27 +829,6 @@ function deleteStock(sym) {
     saveToRepo(CONFIG);
     renderTable();
   }
-}
-
-function generateMetricDropdownOptions(selectedKey) {
-  let html = '';
-  if (CONFIG.formulas && CONFIG.formulas.length > 0) {
-    html += `<optgroup label="Custom Formulas">`;
-    for (const f of CONFIG.formulas) {
-      const isSel = (f.key === selectedKey) ? 'selected' : '';
-      html += `<option value="${f.key}" ${isSel}>${cleanString(f.name)}</option>`;
-    }
-    html += `</optgroup>`;
-  }
-  for (const [secTitle, metrics] of Object.entries(YAHOO_SECTIONS)) {
-    html += `<optgroup label="${cleanString(secTitle)}">`;
-    for (const m of metrics) {
-      const isSel = (m.key === selectedKey) ? 'selected' : '';
-      html += `<option value="${m.key}" ${isSel}>${cleanString(m.label)}</option>`;
-    }
-    html += `</optgroup>`;
-  }
-  return html;
 }
 
 function initResize(e, colIndex) {
@@ -997,7 +1073,10 @@ function exportCSV() {
   a.click();
 }
 
-function openModal(id) { document.getElementById(id).style.display = 'grid'; }
+function openModal(id) { 
+  if (id === 'modal-formula') renderFormulaChips();
+  document.getElementById(id).style.display = 'grid'; 
+}
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 async function init() {
