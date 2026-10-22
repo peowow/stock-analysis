@@ -3,18 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v12</title>
+<title>Stock Analysis v13</title>
 <style>
   :root {
-    --bg: #140e0a;
-    --surface: #1e1610;
-    --surface2: #2d2118;
-    --surface3: #3d2d20;
-    --text: #f5ede6;
-    --text-muted: #a89485;
-    --border: #3d2d20;
+    --bg: #221811;
+    --surface: #2d2017;
+    --surface2: #3d2c20;
+    --surface3: #4f3a2b;
+    --text: #f7efe8;
+    --text-muted: #bda899;
+    --border: #4a3628;
     --primary: #d97706;
     --primary-hover: #b45309;
+    --hover-row: rgba(217, 119, 6, 0.18);
     --green: #4ade80;
     --red: #f87171;
     --radius: 6px;
@@ -46,8 +47,9 @@
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
   
+  /* Table & Layout */
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
-  table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
+  table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; width: max-content; }
   th, td { 
     padding: 5px 6px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; 
@@ -58,15 +60,17 @@
 
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; cursor: default; }
   th.pinned { background: var(--surface2); z-index: 3; }
-  tbody tr:hover { background: rgba(255,255,255,0.02); }
   
+  /* Visible Row Hover */
+  tbody tr:hover { background: var(--hover-row) !important; }
+  tbody tr:hover td.pinned { background: #35261c !important; }
+
   tr.drag-row-over { border-top: 2px solid var(--primary) !important; }
   
   .stock-cell { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
   .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .stock-symbol:active { cursor: grabbing; }
 
-  /* True narrow truncating headers */
   .col-title-btn {
     background: transparent; border: none; color: var(--text); font-weight: 600;
     font-size: 11px; cursor: pointer; padding: 0; outline: none; text-align: right; 
@@ -76,9 +80,10 @@
 
   .ind-avg { color: var(--text-muted); font-size: 10px; opacity: 0.85; margin-left: 2px; }
 
+  /* Drag Resizer */
   .resizer {
-    position: absolute; right: 0; top: 0; height: 100%; width: 5px;
-    background: rgba(0,0,0,0.1); cursor: col-resize; user-select: none; z-index: 5;
+    position: absolute; right: 0; top: 0; height: 100%; width: 8px;
+    background: transparent; cursor: col-resize; user-select: none; z-index: 10;
   }
   .resizer:hover { background: var(--primary); }
 
@@ -88,6 +93,19 @@
   }
   .btn-icon:hover { color: var(--red); }
   .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+  /* Tooltip for Metric Definitions */
+  #metric-tooltip {
+    position: fixed; display: none; background: #1a120c; color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px;
+    font-size: 11px; line-height: 1.4; max-width: 260px; z-index: 1000; pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .badge-better {
+    display: inline-block; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; margin-top: 4px;
+  }
+  .badge-high { background: rgba(74, 222, 128, 0.2); color: var(--green); }
+  .badge-low { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
 
   /* Formula Editor Styles */
   .formula-editor-wrap {
@@ -153,7 +171,10 @@
   </table>
 </div>
 
-<!-- Modal: Metric Selector for Column -->
+<!-- Floating Tooltip -->
+<div id="metric-tooltip"></div>
+
+<!-- Modal: Metric Selector -->
 <div class="modal-overlay" id="modal-metric-picker" onclick="if(event.target===this)closeModal('modal-metric-picker')">
   <div class="modal">
     <h2 id="metric-modal-title">Select Metric</h2>
@@ -192,7 +213,6 @@
       <textarea id="formula-input" class="formula-textarea" placeholder="=(forwardPE + trailingPE) / 2" oninput="onFormulaType()" spellcheck="false"></textarea>
     </div>
 
-    <!-- Searchable metric chips -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
       <span style="font-size:11px; color:var(--text-muted);">Click to insert:</span>
       <input type="text" id="chip-filter" placeholder="Filter..." oninput="renderFormulaChips()" style="font-size:10px; padding:2px 6px; width:100px;">
@@ -245,51 +265,51 @@
 </footer>
 
 <script>
-// Filtered Metric Categories (Removed MA, float, short, current ratio, rev growth)
+// Metric Dictionary with Definitions & Preference (Better High vs Better Low)
 const YAHOO_SECTIONS = {
   "Valuation Measures": [
-    { key: "marketCap", label: "Market Cap", format: "bignum" },
-    { key: "enterpriseValue", label: "Enterprise Value", format: "bignum" },
-    { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
-    { key: "forwardPE", label: "Forward P/E", format: "ratio" },
-    { key: "pegRatio", label: "PEG Ratio", format: "ratio" },
-    { key: "priceToSalesTrailing12Months", label: "Price/Sales", format: "ratio" },
-    { key: "priceToBook", label: "Price/Book", format: "ratio" },
-    { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
-    { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
+    { key: "marketCap", label: "Market Cap", format: "bignum", desc: "Total market value of all outstanding shares.", better: "Neutral" },
+    { key: "enterpriseValue", label: "Enterprise Value", format: "bignum", desc: "Market Cap + Total Debt - Total Cash (Total acquisition cost).", better: "Neutral" },
+    { key: "trailingPE", label: "Trailing P/E", format: "ratio", desc: "Share price divided by trailing 12-month EPS.", better: "Lower" },
+    { key: "forwardPE", label: "Forward P/E", format: "ratio", desc: "Share price divided by forecasted next-year EPS.", better: "Lower" },
+    { key: "pegRatio", label: "PEG Ratio", format: "ratio", desc: "P/E ratio divided by earnings growth rate (PEG < 1 is undervalued).", better: "Lower" },
+    { key: "priceToSalesTrailing12Months", label: "Price/Sales", format: "ratio", desc: "Market value per dollar of revenue.", better: "Lower" },
+    { key: "priceToBook", label: "Price/Book", format: "ratio", desc: "Market price compared to net accounting book value.", better: "Lower" },
+    { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio", desc: "Enterprise value per dollar of sales.", better: "Lower" },
+    { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio", desc: "Enterprise value divided by EBITDA.", better: "Lower" }
   ],
   "Profitability & Returns": [
-    { key: "profitMargins", label: "Profit Margin", format: "percent" },
-    { key: "operatingMargins", label: "Operating Margin", format: "percent" },
-    { key: "grossMargins", label: "Gross Margin", format: "percent" },
-    { key: "returnOnAssets", label: "Return on Assets (ROA)", format: "percent" },
-    { key: "returnOnEquity", label: "Return on Equity (ROE)", format: "percent" },
-    { key: "totalRevenue", label: "Total Revenue", format: "bignum" },
-    { key: "ebitda", label: "EBITDA", format: "bignum" },
-    { key: "netIncomeToCommon", label: "Net Income", format: "bignum" },
-    { key: "trailingEps", label: "EPS", format: "number" },
-    { key: "forwardEps", label: "Forward EPS", format: "number" }
+    { key: "profitMargins", label: "Profit Margin", format: "percent", desc: "Percentage of revenue turned into net profit.", better: "Higher" },
+    { key: "operatingMargins", label: "Operating Margin", format: "percent", desc: "Operating profit as a percentage of revenue.", better: "Higher" },
+    { key: "grossMargins", label: "Gross Margin", format: "percent", desc: "Revenue remaining after direct cost of goods sold.", better: "Higher" },
+    { key: "returnOnAssets", label: "Return on Assets (ROA)", format: "percent", desc: "How efficiently assets generate profit.", better: "Higher" },
+    { key: "returnOnEquity", label: "Return on Equity (ROE)", format: "percent", desc: "Net income generated per dollar of shareholder equity.", better: "Higher" },
+    { key: "totalRevenue", label: "Total Revenue", format: "bignum", desc: "Gross revenue generated over trailing 12 months.", better: "Higher" },
+    { key: "ebitda", label: "EBITDA", format: "bignum", desc: "Earnings before interest, taxes, depreciation, and amortization.", better: "Higher" },
+    { key: "netIncomeToCommon", label: "Net Income", format: "bignum", desc: "Bottom-line net profit available to shareholders.", better: "Higher" },
+    { key: "trailingEps", label: "EPS", format: "number", desc: "Net earnings divided by the number of shares.", better: "Higher" },
+    { key: "forwardEps", label: "Forward EPS", format: "number", desc: "Projected earnings per share for next fiscal year.", better: "Higher" }
   ],
   "Balance Sheet & Cash Flow": [
-    { key: "totalCash", label: "Total Cash", format: "bignum" },
-    { key: "totalDebt", label: "Total Debt", format: "bignum" },
-    { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
-    { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
-    { key: "bookValue", label: "Book Value", format: "number" },
-    { key: "operatingCashflow", label: "Operating CF", format: "bignum" },
-    { key: "freeCashflow", label: "Free CF", format: "bignum" }
+    { key: "totalCash", label: "Total Cash", format: "bignum", desc: "Cash and short-term liquid investments.", better: "Higher" },
+    { key: "totalDebt", label: "Total Debt", format: "bignum", desc: "Total short and long-term interest-bearing debt obligations.", better: "Lower" },
+    { key: "debtToEquity", label: "Debt/Equity", format: "ratio", desc: "Financial leverage: total debt divided by shareholder equity.", better: "Lower" },
+    { key: "quickRatio", label: "Quick Ratio", format: "ratio", desc: "Liquid assets divided by current liabilities (>1.0 is healthy).", better: "Higher" },
+    { key: "bookValue", label: "Book Value", format: "number", desc: "Equity value per share according to balance sheet.", better: "Higher" },
+    { key: "operatingCashflow", label: "Operating CF", format: "bignum", desc: "Actual cash generated from core business operations.", better: "Higher" },
+    { key: "freeCashflow", label: "Free CF", format: "bignum", desc: "Cash remaining after capital expenditures (true spending cash).", better: "Higher" }
   ],
   "Trading & Dividends": [
-    { key: "currentPrice", label: "Price", format: "currency" },
-    { key: "currency", label: "Currency", format: "text" },
-    { key: "beta", label: "Beta", format: "number" },
-    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
-    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
-    { key: "targetMeanPrice", label: "Target Price", format: "currency" },
-    { key: "sharesOutstanding", label: "Shares Out", format: "bignum" },
-    { key: "dividendRate", label: "Dividend Rate", format: "currency" },
-    { key: "dividendYield", label: "Dividend Yield", format: "percent" },
-    { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
+    { key: "currentPrice", label: "Price", format: "currency", desc: "Current market share price.", better: "Neutral" },
+    { key: "currency", label: "Currency", format: "text", desc: "Currency of listing (CAD or USD).", better: "Neutral" },
+    { key: "beta", label: "Beta", format: "number", desc: "Volatility relative to market (1.0 = equal to market; <1 = less volatile).", better: "Neutral" },
+    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency", desc: "Highest traded price in the last 52 weeks.", better: "Neutral" },
+    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency", desc: "Lowest traded price in the last 52 weeks.", better: "Neutral" },
+    { key: "targetMeanPrice", label: "Target Price", format: "currency", desc: "Average 1-year target price predicted by Wall St. analysts.", better: "Higher" },
+    { key: "sharesOutstanding", label: "Shares Out", format: "bignum", desc: "Total authorized shares currently held by all shareholders.", better: "Neutral" },
+    { key: "dividendRate", label: "Dividend Rate", format: "currency", desc: "Annualized cash dividend payout per share.", better: "Higher" },
+    { key: "dividendYield", label: "Dividend Yield", format: "percent", desc: "Annual dividend divided by current share price.", better: "Higher" },
+    { key: "payoutRatio", label: "Payout Ratio", format: "percent", desc: "Percentage of earnings paid out as dividends (<60% is safe).", better: "Lower" }
   ]
 };
 
@@ -303,7 +323,7 @@ for (const sec of Object.values(YAHOO_SECTIONS)) {
   }
 }
 
-// NYU Stern Benchmarks Expanded for Ratios
+// Built-in Industry Benchmarks
 const DAMODARAN_BENCHMARKS = {
   "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2, priceToBook: 4.8, priceToSalesTrailing12Months: 7.2, returnOnEquity: 19.5, returnOnAssets: 11.2 },
   "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4, priceToBook: 1.1, priceToSalesTrailing12Months: 0.8, returnOnEquity: 12.1, returnOnAssets: 3.5 },
@@ -364,6 +384,29 @@ function getIndustryBenchmark(industryName, key) {
   return ind[key];
 }
 
+// Tooltip logic
+let tooltipTimer = null;
+function showTooltip(e, key) {
+  const meta = METRIC_MAP[key];
+  if (!meta) return;
+  tooltipTimer = setTimeout(() => {
+    const tip = document.getElementById('metric-tooltip');
+    let badgeHtml = '';
+    if (meta.better === "Higher") badgeHtml = '<span class="badge-better badge-high">▲ Better: Higher</span>';
+    else if (meta.better === "Lower") badgeHtml = '<span class="badge-better badge-low">▼ Better: Lower</span>';
+
+    tip.innerHTML = `<b>${cleanString(meta.label)}</b><div style="margin-top:2px;">${cleanString(meta.desc)}</div>${badgeHtml}`;
+    tip.style.left = Math.min(window.innerWidth - 270, e.clientX + 10) + 'px';
+    tip.style.top = (e.clientY + 15) + 'px';
+    tip.style.display = 'block';
+  }, 400);
+}
+
+function hideTooltip() {
+  clearTimeout(tooltipTimer);
+  document.getElementById('metric-tooltip').style.display = 'none';
+}
+
 function renderFormulaChips() {
   const filter = (document.getElementById('chip-filter').value || '').toLowerCase();
   const container = document.getElementById('chip-container');
@@ -421,7 +464,7 @@ function confirmMetricSelection() {
   let meta = METRIC_MAP[newKey] || { label: newKey, format: "number" };
 
   if (editingColIdx === -1) {
-    CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 90 });
+    CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 85 });
   } else {
     CONFIG.columns[editingColIdx].key = newKey;
     CONFIG.columns[editingColIdx].label = meta.label;
@@ -721,7 +764,7 @@ function onRowDrop(e, targetIdx, rowEl) {
   saveToRepo(CONFIG);
 }
 
-// Column Dragging (Reorder Columns Left/Right)
+// Column Dragging
 let draggedColIndex = null;
 function onColDragStart(e, idx) {
   draggedColIndex = idx;
@@ -746,6 +789,31 @@ function onColDrop(e, targetIdx, thEl) {
   saveToRepo(CONFIG);
 }
 
+// Resizing Mechanism
+function initResize(e, colIndex) {
+  e.preventDefault();
+  e.stopPropagation();
+  const startX = e.clientX;
+  const colElem = document.getElementById(`col-def-${colIndex}`);
+  const startWidth = colElem ? colElem.offsetWidth : (CONFIG.columns[colIndex].width || 80);
+
+  function doDrag(e) {
+    const newWidth = Math.max(30, startWidth + (e.clientX - startX));
+    CONFIG.columns[colIndex].width = newWidth;
+    if (colElem) colElem.style.width = newWidth + 'px';
+  }
+
+  function stopDrag() {
+    window.removeEventListener('mousemove', doDrag);
+    window.removeEventListener('mouseup', stopDrag);
+    saveToRepo(CONFIG);
+    renderTable();
+  }
+
+  window.addEventListener('mousemove', doDrag);
+  window.addEventListener('mouseup', stopDrag);
+}
+
 function renderTable() {
   renderGroups();
   const colgroup = document.getElementById('table-cols');
@@ -753,14 +821,14 @@ function renderTable() {
   const tbody = document.getElementById('table-body');
   const search = document.getElementById('search-box').value.trim().toUpperCase();
 
-  let colHtml = '<col style="width: 80px;">';
-  CONFIG.columns.forEach(c => {
-    colHtml += `<col style="width: ${c.width || 85}px;">`;
+  let colHtml = '<col id="col-def-pinned" style="width: 75px;">';
+  CONFIG.columns.forEach((c, idx) => {
+    colHtml += `<col id="col-def-${idx}" style="width: ${c.width || 85}px;">`;
   });
   colHtml += '<col style="width: 45px;">';
   colgroup.innerHTML = colHtml;
 
-  // Header row with Column Drag-to-Reorder
+  // Header row
   let headHtml = '<tr><th class="pinned">Symbol</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
@@ -768,8 +836,10 @@ function renderTable() {
           ondragstart="onColDragStart(event, ${idx})"
           ondragover="onColDragOver(event, this)"
           ondragleave="onColDragLeave(this)"
-          ondrop="onColDrop(event, ${idx}, this)">
-        <button class="col-title-btn" onclick="openMetricModal(${idx})" title="${cleanString(col.label)}">
+          ondrop="onColDrop(event, ${idx}, this)"
+          onmouseenter="showTooltip(event, '${col.key}')"
+          onmouseleave="hideTooltip()">
+        <button class="col-title-btn" onclick="openMetricModal(${idx})">
           ${cleanString(col.label)}
         </button>
         <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
@@ -838,28 +908,6 @@ function deleteStock(sym) {
     saveToRepo(CONFIG);
     renderTable();
   }
-}
-
-function initResize(e, colIndex) {
-  e.preventDefault();
-  e.stopPropagation();
-  const startX = e.clientX;
-  const startWidth = CONFIG.columns[colIndex].width || 85;
-
-  function doDrag(e) {
-    const newWidth = Math.max(35, startWidth + (e.clientX - startX));
-    CONFIG.columns[colIndex].width = newWidth;
-    renderTable();
-  }
-
-  function stopDrag() {
-    window.removeEventListener('mousemove', doDrag);
-    window.removeEventListener('mouseup', stopDrag);
-    saveToRepo(CONFIG);
-  }
-
-  window.addEventListener('mousemove', doDrag);
-  window.addEventListener('mouseup', stopDrag);
 }
 
 function formatVal(val, format, curr) {
