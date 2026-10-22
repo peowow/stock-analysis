@@ -16,7 +16,8 @@
     "CVE.TO",
     "AQN.TO",
     "BYDDY",
-    "GOOG"
+    "GOOG",
+    "GTII.TO"
   ],
   "groups": {
     "All": [
@@ -34,7 +35,8 @@
       "CVE.TO",
       "AQN.TO",
       "BYDDY",
-      "GOOG"
+      "GOOG",
+      "GTII.TO"
     ],
     "Energy": [
       "VET.TO"
