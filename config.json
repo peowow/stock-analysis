@@ -17,8 +17,9 @@
     "AQN.TO",
     "BYDDY",
     "GOOG",
-    "GTII.TO",
-    "KEY.TO"
+    "KEY.TO",
+    "GTII.CN",
+    "CNQ.TO"
   ],
   "groups": {
     "All": [
@@ -37,8 +38,9 @@
       "AQN.TO",
       "BYDDY",
       "GOOG",
-      "GTII.TO",
-      "KEY.TO"
+      "KEY.TO",
+      "GTII.CN",
+      "CNQ.TO"
     ],
     "Energy": [
       "VET.TO"
