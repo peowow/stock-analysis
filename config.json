@@ -90,39 +90,7 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
-    },
-    {
-      "key": "formula_Average_PE",
-      "label": "Average PE",
-      "format": "ratio",
-      "width": 105
-    },
-    {
-      "key": "formula_Average_PE",
-      "label": "Average PE",
-      "format": "ratio",
-      "width": 95,
-      "isFormula": true
     }
   ],
-  "formulas": [
-    {
-      "key": "formula_Average_PE",
-      "name": "Average PE",
-      "expr": "=(TrailingP/E + ForwardP/E)/2",
-      "format": "ratio"
-    },
-    {
-      "key": "formula_blah",
-      "name": "blah",
-      "expr": "=(Trailing P/E + Forward P/E)/2",
-      "format": "ratio"
-    },
-    {
-      "key": "formula_Average_PE",
-      "name": "Average PE",
-      "expr": "=(forwardPE+trailingPE)/2",
-      "format": "ratio"
-    }
-  ]
+  "formulas": []
 }
