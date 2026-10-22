@@ -64,25 +64,26 @@
     {
       "key": "currentPrice",
       "label": "Price",
-      "format": "currency"
+      "format": "currency",
+      "width": 99
     },
     {
       "key": "targetMeanPrice",
       "label": "Target Price",
       "format": "currency",
-      "width": 35
+      "width": 99
     },
     {
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 50
+      "width": 81
     },
     {
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 50
+      "width": 90
     },
     {
       "key": "formula_Average_PE",
@@ -167,6 +168,13 @@
       "label": "Enterprise Value",
       "format": "bignum",
       "width": 85
+    },
+    {
+      "key": "formula_Cash_Debt",
+      "label": "Cash-Debt",
+      "format": "currency",
+      "width": 85,
+      "isFormula": true
     }
   ],
   "formulas": [
@@ -175,6 +183,12 @@
       "name": "Average PE",
       "expr": "=(trailingPE+forwardPE)/2",
       "format": "ratio"
+    },
+    {
+      "key": "formula_Cash_Debt",
+      "name": "Cash-Debt",
+      "expr": "=totalCash-totalDebt",
+      "format": "currency"
     }
   ]
 }
