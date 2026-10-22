@@ -101,7 +101,7 @@
       "key": "dividendYield",
       "label": "Div Yield",
       "format": "percent",
-      "width": 35
+      "width": 68
     },
     {
       "key": "payoutRatio",
