@@ -14,7 +14,8 @@
     "MDA.TO",
     "LUN.TO",
     "CVE.TO",
-    "AQN.TO"
+    "AQN.TO",
+    "BYDDY"
   ],
   "groups": {
     "All": [
@@ -30,7 +31,8 @@
       "MDA.TO",
       "LUN.TO",
       "CVE.TO",
-      "AQN.TO"
+      "AQN.TO",
+      "BYDDY"
     ],
     "Energy": [
       "VET.TO"
