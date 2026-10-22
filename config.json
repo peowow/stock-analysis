@@ -17,7 +17,8 @@
     "AQN.TO",
     "BYDDY",
     "GOOG",
-    "GTII.TO"
+    "GTII.TO",
+    "KEY.TO"
   ],
   "groups": {
     "All": [
@@ -36,7 +37,8 @@
       "AQN.TO",
       "BYDDY",
       "GOOG",
-      "GTII.TO"
+      "GTII.TO",
+      "KEY.TO"
     ],
     "Energy": [
       "VET.TO"
@@ -84,16 +86,16 @@
       "width": 35
     },
     {
+      "key": "operatingMargins",
+      "label": "Operating Margin",
+      "format": "percent",
+      "width": 77
+    },
+    {
       "key": "profitMargins",
       "label": "Profit Margin",
       "format": "percent",
       "width": 50
-    },
-    {
-      "key": "operatingMargins",
-      "label": "Operating Margin",
-      "format": "percent",
-      "width": 109
     },
     {
       "key": "payoutRatio",
@@ -123,6 +125,12 @@
       "label": "Target Price",
       "format": "currency",
       "width": 35
+    },
+    {
+      "key": "pegRatio",
+      "label": "PEG Ratio",
+      "format": "ratio",
+      "width": 85
     }
   ],
   "formulas": [
