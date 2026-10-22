@@ -9,6 +9,7 @@
     "PEY.TO",
     "FM.TO",
     "LUN.TO",
+    "HBM.TO",
     "AQN.TO",
     "CCO.TO",
     "FSLR",
@@ -22,8 +23,7 @@
     "TRLV",
     "GTII.CN",
     "AC.TO",
-    "MDA.TO",
-    "HBM.TO"
+    "MDA.TO"
   ],
   "groups": {
     "All": [
