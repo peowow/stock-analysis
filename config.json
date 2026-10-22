@@ -53,10 +53,17 @@
       "width": 50
     },
     {
+      "key": "formula_Average_PE",
+      "label": "Average PE",
+      "format": "ratio",
+      "width": 50,
+      "isFormula": true
+    },
+    {
       "key": "returnOnAssets",
       "label": "Return on Assets (ROA)",
       "format": "percent",
-      "width": 35
+      "width": 50
     },
     {
       "key": "dividendYield",
@@ -68,12 +75,7 @@
       "key": "profitMargins",
       "label": "Profit Margin",
       "format": "percent",
-      "width": 122
-    },
-    {
-      "key": "targetMeanPrice",
-      "label": "Target Price",
-      "format": "currency"
+      "width": 50
     },
     {
       "key": "payoutRatio",
@@ -92,11 +94,16 @@
       "format": "bignum"
     },
     {
-      "key": "formula_Average_PE",
-      "label": "Average PE",
-      "format": "ratio",
-      "width": 50,
-      "isFormula": true
+      "key": "targetMeanPrice",
+      "label": "Target Price",
+      "format": "currency",
+      "width": 35
+    },
+    {
+      "key": "totalCash",
+      "label": "Total Cash",
+      "format": "bignum",
+      "width": 90
     }
   ],
   "formulas": [
