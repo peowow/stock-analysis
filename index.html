@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v11</title>
+<title>Stock Analysis v12</title>
 <style>
   :root {
     --bg: #140e0a;
@@ -48,9 +48,15 @@
   
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
   table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
-  th, td { padding: 5px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-  th { background: var(--surface2); font-weight: 600; position: relative; user-select: none; }
-  td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; }
+  th, td { 
+    padding: 5px 6px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; 
+  }
+  th { background: var(--surface2); font-weight: 600; position: relative; user-select: none; cursor: grab; }
+  th:active { cursor: grabbing; }
+  th.drag-col-over { border-left: 2px solid var(--primary) !important; background: var(--surface3); }
+
+  td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; cursor: default; }
   th.pinned { background: var(--surface2); z-index: 3; }
   tbody tr:hover { background: rgba(255,255,255,0.02); }
   
@@ -60,17 +66,19 @@
   .stock-symbol { color: #ffffff !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .stock-symbol:active { cursor: grabbing; }
 
+  /* True narrow truncating headers */
   .col-title-btn {
     background: transparent; border: none; color: var(--text); font-weight: 600;
-    font-size: 12px; cursor: pointer; padding: 0; outline: none; text-align: right; width: 100%;
+    font-size: 11px; cursor: pointer; padding: 0; outline: none; text-align: right; 
+    width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .col-title-btn:hover { color: var(--primary); }
 
-  .ind-avg { color: var(--text-muted); font-size: 11px; opacity: 0.85; margin-left: 2px; }
+  .ind-avg { color: var(--text-muted); font-size: 10px; opacity: 0.85; margin-left: 2px; }
 
   .resizer {
     position: absolute; right: 0; top: 0; height: 100%; width: 5px;
-    background: rgba(0,0,0,0.1); cursor: col-resize; user-select: none;
+    background: rgba(0,0,0,0.1); cursor: col-resize; user-select: none; z-index: 5;
   }
   .resizer:hover { background: var(--primary); }
 
@@ -97,7 +105,6 @@
   .token-fn { color: #c084fc; font-weight: 700; }
   .token-num { color: #fb923c; }
 
-  /* Click-to-insert Chips */
   .chip-container {
     display: flex; flex-wrap: wrap; gap: 4px; max-height: 90px; overflow-y: auto;
     padding: 6px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 8px;
@@ -109,7 +116,7 @@
   .metric-chip:hover { background: var(--primary); color: #fff; }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; place-items: center; z-index: 100; padding: 12px; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; padding: 16px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 16px; }
   .modal h2 { margin-bottom: 10px; font-size: 15px; }
   .setup-box { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 12px; background: var(--surface); }
   footer { margin-top: 20px; text-align: center; color: var(--text-muted); font-size: 11px; padding: 8px; }
@@ -146,7 +153,7 @@
   </table>
 </div>
 
-<!-- Modal: Metric Selector for Column Header -->
+<!-- Modal: Metric Selector for Column -->
 <div class="modal-overlay" id="modal-metric-picker" onclick="if(event.target===this)closeModal('modal-metric-picker')">
   <div class="modal">
     <h2 id="metric-modal-title">Select Metric</h2>
@@ -174,7 +181,7 @@
   </div>
 </div>
 
-<!-- Modal: Formula Editor with Click-to-Insert -->
+<!-- Modal: Formula Editor -->
 <div class="modal-overlay" id="modal-formula" onclick="if(event.target===this)closeModal('modal-formula')">
   <div class="modal">
     <h2>Add Excel-Style Formula</h2>
@@ -185,10 +192,10 @@
       <textarea id="formula-input" class="formula-textarea" placeholder="=(forwardPE + trailingPE) / 2" oninput="onFormulaType()" spellcheck="false"></textarea>
     </div>
 
-    <!-- Metric Search & Click-to-Insert Chips -->
+    <!-- Searchable metric chips -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-      <span style="font-size:11px; color:var(--text-muted);">Click any metric below to insert:</span>
-      <input type="text" id="chip-filter" placeholder="Filter metrics..." oninput="renderFormulaChips()" style="font-size:10px; padding:2px 6px; width:120px;">
+      <span style="font-size:11px; color:var(--text-muted);">Click to insert:</span>
+      <input type="text" id="chip-filter" placeholder="Filter..." oninput="renderFormulaChips()" style="font-size:10px; padding:2px 6px; width:100px;">
     </div>
     <div class="chip-container" id="chip-container"></div>
 
@@ -238,7 +245,7 @@
 </footer>
 
 <script>
-// Comprehensive Metric Dictionary (~70 Yahoo Metrics)
+// Filtered Metric Categories (Removed MA, float, short, current ratio, rev growth)
 const YAHOO_SECTIONS = {
   "Valuation Measures": [
     { key: "marketCap", label: "Market Cap", format: "bignum" },
@@ -246,71 +253,46 @@ const YAHOO_SECTIONS = {
     { key: "trailingPE", label: "Trailing P/E", format: "ratio" },
     { key: "forwardPE", label: "Forward P/E", format: "ratio" },
     { key: "pegRatio", label: "PEG Ratio", format: "ratio" },
-    { key: "priceToSalesTrailing12Months", label: "Price/Sales (TTM)", format: "ratio" },
+    { key: "priceToSalesTrailing12Months", label: "Price/Sales", format: "ratio" },
     { key: "priceToBook", label: "Price/Book", format: "ratio" },
     { key: "enterpriseToRevenue", label: "EV/Revenue", format: "ratio" },
     { key: "enterpriseToEbitda", label: "EV/EBITDA", format: "ratio" }
   ],
-  "Financial Highlights & Margins": [
+  "Profitability & Returns": [
     { key: "profitMargins", label: "Profit Margin", format: "percent" },
     { key: "operatingMargins", label: "Operating Margin", format: "percent" },
     { key: "grossMargins", label: "Gross Margin", format: "percent" },
-    { key: "ebitdaMargins", label: "EBITDA Margin", format: "percent" },
     { key: "returnOnAssets", label: "Return on Assets (ROA)", format: "percent" },
     { key: "returnOnEquity", label: "Return on Equity (ROE)", format: "percent" },
     { key: "totalRevenue", label: "Total Revenue", format: "bignum" },
-    { key: "revenuePerShare", label: "Revenue Per Share", format: "number" },
-    { key: "revenueGrowth", label: "Quarterly Revenue Growth", format: "percent" },
-    { key: "grossProfits", label: "Gross Profit", format: "bignum" },
     { key: "ebitda", label: "EBITDA", format: "bignum" },
-    { key: "netIncomeToCommon", label: "Net Income to Common", format: "bignum" },
-    { key: "trailingEps", label: "Diluted EPS (TTM)", format: "number" },
-    { key: "forwardEps", label: "Forward EPS", format: "number" },
-    { key: "earningsGrowth", label: "Quarterly Earnings Growth", format: "percent" }
+    { key: "netIncomeToCommon", label: "Net Income", format: "bignum" },
+    { key: "trailingEps", label: "EPS", format: "number" },
+    { key: "forwardEps", label: "Forward EPS", format: "number" }
   ],
-  "Balance Sheet & Liquidity": [
+  "Balance Sheet & Cash Flow": [
     { key: "totalCash", label: "Total Cash", format: "bignum" },
-    { key: "totalCashPerShare", label: "Total Cash Per Share", format: "number" },
     { key: "totalDebt", label: "Total Debt", format: "bignum" },
     { key: "debtToEquity", label: "Debt/Equity", format: "ratio" },
-    { key: "currentRatio", label: "Current Ratio", format: "ratio" },
     { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
-    { key: "bookValue", label: "Book Value Per Share", format: "number" }
+    { key: "bookValue", label: "Book Value", format: "number" },
+    { key: "operatingCashflow", label: "Operating CF", format: "bignum" },
+    { key: "freeCashflow", label: "Free CF", format: "bignum" }
   ],
-  "Cash Flow": [
-    { key: "operatingCashflow", label: "Operating Cash Flow", format: "bignum" },
-    { key: "freeCashflow", label: "Free Cash Flow", format: "bignum" }
-  ],
-  "Trading & Moving Averages": [
-    { key: "currentPrice", label: "Current Price", format: "currency" },
+  "Trading & Dividends": [
+    { key: "currentPrice", label: "Price", format: "currency" },
     { key: "currency", label: "Currency", format: "text" },
     { key: "beta", label: "Beta", format: "number" },
-    { key: "fiftyTwoWeekHigh", label: "52-Week High", format: "currency" },
-    { key: "fiftyTwoWeekLow", label: "52-Week Low", format: "currency" },
-    { key: "fiftyDayAverage", label: "50-Day Moving Average", format: "currency" },
-    { key: "twoHundredDayAverage", label: "200-Day Moving Average", format: "currency" },
-    { key: "targetMeanPrice", label: "Analyst Target Price", format: "currency" },
-    { key: "targetHighPrice", label: "Analyst Target High", format: "currency" },
-    { key: "targetLowPrice", label: "Analyst Target Low", format: "currency" }
-  ],
-  "Share Statistics": [
-    { key: "sharesOutstanding", label: "Shares Outstanding", format: "bignum" },
-    { key: "floatShares", label: "Float Shares", format: "bignum" },
-    { key: "sharesShort", label: "Shares Short", format: "bignum" },
-    { key: "shortRatio", label: "Short Ratio", format: "ratio" },
-    { key: "shortPercentOfFloat", label: "Short % of Float", format: "percent" }
-  ],
-  "Dividends & Splits": [
-    { key: "dividendRate", label: "Forward Dividend Rate", format: "currency" },
+    { key: "fiftyTwoWeekHigh", label: "52W High", format: "currency" },
+    { key: "fiftyTwoWeekLow", label: "52W Low", format: "currency" },
+    { key: "targetMeanPrice", label: "Target Price", format: "currency" },
+    { key: "sharesOutstanding", label: "Shares Out", format: "bignum" },
+    { key: "dividendRate", label: "Dividend Rate", format: "currency" },
     { key: "dividendYield", label: "Dividend Yield", format: "percent" },
-    { key: "trailingAnnualDividendRate", label: "Trailing Div Rate", format: "currency" },
-    { key: "trailingAnnualDividendYield", label: "Trailing Div Yield", format: "percent" },
-    { key: "fiveYearAvgDividendYield", label: "5-Year Avg Div Yield", format: "percent" },
     { key: "payoutRatio", label: "Payout Ratio", format: "percent" }
   ]
 };
 
-// Flattened lookup and case-insensitive mapper
 const METRIC_MAP = {};
 const CASE_INSENSITIVE_MAP = {};
 
@@ -321,21 +303,21 @@ for (const sec of Object.values(YAHOO_SECTIONS)) {
   }
 }
 
-// Built-in NYU Stern Benchmarks
+// NYU Stern Benchmarks Expanded for Ratios
 const DAMODARAN_BENCHMARKS = {
-  "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2, priceToBook: 4.8 },
-  "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4, priceToBook: 1.1 },
-  "Oil & Gas E&P": { trailingPE: 8.6, forwardPE: 9.2, profitMargins: 24.1, operatingMargins: 29.5, grossMargins: 52.8, debtToEquity: 34.5, priceToBook: 1.4 },
-  "Oil & Gas Integrated": { trailingPE: 10.4, forwardPE: 10.1, profitMargins: 11.2, operatingMargins: 14.5, grossMargins: 38.6, debtToEquity: 28.1, priceToBook: 1.6 },
-  "Software - Infrastructure": { trailingPE: 42.1, forwardPE: 31.5, profitMargins: 16.4, operatingMargins: 21.3, grossMargins: 68.2, debtToEquity: 22.4, priceToBook: 7.8 },
-  "Software - Application": { trailingPE: 38.6, forwardPE: 28.2, profitMargins: 14.8, operatingMargins: 18.9, grossMargins: 66.5, debtToEquity: 19.8, priceToBook: 6.9 },
-  "Aerospace & Defense": { trailingPE: 26.5, forwardPE: 21.2, profitMargins: 6.8, operatingMargins: 9.8, grossMargins: 23.4, debtToEquity: 64.2, priceToBook: 3.2 },
-  "Solar": { trailingPE: 22.4, forwardPE: 18.6, profitMargins: 9.5, operatingMargins: 13.2, grossMargins: 26.8, debtToEquity: 42.1, priceToBook: 2.1 },
-  "Airlines": { trailingPE: 9.4, forwardPE: 8.2, profitMargins: 4.8, operatingMargins: 7.6, grossMargins: 24.2, debtToEquity: 125.4, priceToBook: 1.5 },
-  "Copper": { trailingPE: 14.2, forwardPE: 12.8, profitMargins: 12.4, operatingMargins: 19.5, grossMargins: 34.2, debtToEquity: 41.2, priceToBook: 2.0 },
-  "Other Industrial Metals & Mining": { trailingPE: 13.8, forwardPE: 11.9, profitMargins: 11.5, operatingMargins: 17.8, grossMargins: 31.8, debtToEquity: 38.5, priceToBook: 1.8 },
-  "Information Technology Services": { trailingPE: 24.5, forwardPE: 20.1, profitMargins: 8.4, operatingMargins: 12.1, grossMargins: 32.5, debtToEquity: 31.2, priceToBook: 3.6 },
-  "Default": { trailingPE: 22.5, forwardPE: 18.4, profitMargins: 10.2, operatingMargins: 14.1, grossMargins: 36.2, debtToEquity: 45.0, priceToBook: 2.8 }
+  "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2, priceToBook: 4.8, priceToSalesTrailing12Months: 7.2, returnOnEquity: 19.5, returnOnAssets: 11.2 },
+  "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4, priceToBook: 1.1, priceToSalesTrailing12Months: 0.8, returnOnEquity: 12.1, returnOnAssets: 3.5 },
+  "Oil & Gas E&P": { trailingPE: 8.6, forwardPE: 9.2, profitMargins: 24.1, operatingMargins: 29.5, grossMargins: 52.8, debtToEquity: 34.5, priceToBook: 1.4, priceToSalesTrailing12Months: 2.1, returnOnEquity: 18.4, returnOnAssets: 9.8 },
+  "Oil & Gas Integrated": { trailingPE: 10.4, forwardPE: 10.1, profitMargins: 11.2, operatingMargins: 14.5, grossMargins: 38.6, debtToEquity: 28.1, priceToBook: 1.6, priceToSalesTrailing12Months: 1.1, returnOnEquity: 16.2, returnOnAssets: 8.4 },
+  "Software - Infrastructure": { trailingPE: 42.1, forwardPE: 31.5, profitMargins: 16.4, operatingMargins: 21.3, grossMargins: 68.2, debtToEquity: 22.4, priceToBook: 7.8, priceToSalesTrailing12Months: 8.9, returnOnEquity: 22.4, returnOnAssets: 10.8 },
+  "Software - Application": { trailingPE: 38.6, forwardPE: 28.2, profitMargins: 14.8, operatingMargins: 18.9, grossMargins: 66.5, debtToEquity: 19.8, priceToBook: 6.9, priceToSalesTrailing12Months: 7.6, returnOnEquity: 20.1, returnOnAssets: 9.4 },
+  "Aerospace & Defense": { trailingPE: 26.5, forwardPE: 21.2, profitMargins: 6.8, operatingMargins: 9.8, grossMargins: 23.4, debtToEquity: 64.2, priceToBook: 3.2, priceToSalesTrailing12Months: 1.8, returnOnEquity: 14.2, returnOnAssets: 5.1 },
+  "Solar": { trailingPE: 22.4, forwardPE: 18.6, profitMargins: 9.5, operatingMargins: 13.2, grossMargins: 26.8, debtToEquity: 42.1, priceToBook: 2.1, priceToSalesTrailing12Months: 2.2, returnOnEquity: 12.8, returnOnAssets: 6.2 },
+  "Airlines": { trailingPE: 9.4, forwardPE: 8.2, profitMargins: 4.8, operatingMargins: 7.6, grossMargins: 24.2, debtToEquity: 125.4, priceToBook: 1.5, priceToSalesTrailing12Months: 0.6, returnOnEquity: 15.4, returnOnAssets: 3.2 },
+  "Copper": { trailingPE: 14.2, forwardPE: 12.8, profitMargins: 12.4, operatingMargins: 19.5, grossMargins: 34.2, debtToEquity: 41.2, priceToBook: 2.0, priceToSalesTrailing12Months: 2.4, returnOnEquity: 15.1, returnOnAssets: 8.2 },
+  "Other Industrial Metals & Mining": { trailingPE: 13.8, forwardPE: 11.9, profitMargins: 11.5, operatingMargins: 17.8, grossMargins: 31.8, debtToEquity: 38.5, priceToBook: 1.8, priceToSalesTrailing12Months: 1.9, returnOnEquity: 14.2, returnOnAssets: 7.9 },
+  "Information Technology Services": { trailingPE: 24.5, forwardPE: 20.1, profitMargins: 8.4, operatingMargins: 12.1, grossMargins: 32.5, debtToEquity: 31.2, priceToBook: 3.6, priceToSalesTrailing12Months: 1.8, returnOnEquity: 17.2, returnOnAssets: 7.4 },
+  "Default": { trailingPE: 22.5, forwardPE: 18.4, profitMargins: 10.2, operatingMargins: 14.1, grossMargins: 36.2, debtToEquity: 45.0, priceToBook: 2.8, priceToSalesTrailing12Months: 2.2, returnOnEquity: 15.0, returnOnAssets: 6.8 }
 };
 
 const EXCEL_FUNCTIONS = ["IF", "ABS", "ROUND", "MIN", "MAX", "SQRT", "LN", "AVG"];
@@ -345,13 +327,13 @@ let CONFIG = {
   groups: { "All": ["VET.TO", "VET", "AMD", "TM"] },
   activeGroup: "All",
   columns: [
-    { key: "currentPrice", label: "Price", format: "currency", width: 95 },
-    { key: "currency", label: "Currency", format: "text", width: 60 },
-    { key: "marketCap", label: "Market Cap", format: "bignum", width: 100 },
-    { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 110 },
-    { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 110 },
-    { key: "trailingEps", label: "EPS", format: "number", width: 80 },
-    { key: "profitMargins", label: "Profit Margin", format: "percent", width: 110 }
+    { key: "currentPrice", label: "Price", format: "currency", width: 85 },
+    { key: "currency", label: "Curr", format: "text", width: 50 },
+    { key: "marketCap", label: "Market Cap", format: "bignum", width: 90 },
+    { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 95 },
+    { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 95 },
+    { key: "trailingEps", label: "EPS", format: "number", width: 70 },
+    { key: "profitMargins", label: "Profit Margin", format: "percent", width: 95 }
   ],
   formulas: []
 };
@@ -382,7 +364,6 @@ function getIndustryBenchmark(industryName, key) {
   return ind[key];
 }
 
-// Render searchable metric chips in Formula Modal
 function renderFormulaChips() {
   const filter = (document.getElementById('chip-filter').value || '').toLowerCase();
   const container = document.getElementById('chip-container');
@@ -407,7 +388,7 @@ function insertMetricToFormula(key) {
 function openMetricModal(colIdx) {
   editingColIdx = colIdx;
   const isNew = (colIdx === -1);
-  document.getElementById('metric-modal-title').innerText = isNew ? "Add New Column" : "Change Column Metric";
+  document.getElementById('metric-modal-title').innerText = isNew ? "Add Column" : "Change Column";
   document.getElementById('btn-delete-col').style.display = isNew ? "none" : "block";
   document.getElementById('picker-search').value = "";
   filterMetricModalOptions();
@@ -440,7 +421,7 @@ function confirmMetricSelection() {
   let meta = METRIC_MAP[newKey] || { label: newKey, format: "number" };
 
   if (editingColIdx === -1) {
-    CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 105 });
+    CONFIG.columns.push({ key: newKey, label: meta.label, format: meta.format, width: 90 });
   } else {
     CONFIG.columns[editingColIdx].key = newKey;
     CONFIG.columns[editingColIdx].label = meta.label;
@@ -537,7 +518,6 @@ function evaluateExcelFormula(expr, row) {
         if (upper === 'AVG') return args.reduce((a,b)=>a+b,0) / args.length;
       }
 
-      // Stock targeted metric: e.g. AMD.currentPrice
       if (t.includes('.')) {
         const [sym, metricRaw] = t.split('.');
         const realMetric = resolveMetricName(metricRaw) || metricRaw;
@@ -546,7 +526,6 @@ function evaluateExcelFormula(expr, row) {
         return NaN;
       }
 
-      // Case-insensitive resolved metric
       const resolved = resolveMetricName(t);
       if (resolved) {
         let val = row[resolved];
@@ -637,7 +616,7 @@ async function saveFormula() {
   const formulaKey = "formula_" + name.replace(/[^A-Za-z0-9_]/g, '_');
 
   CONFIG.formulas.push({ key: formulaKey, name: name, expr: expr, format: format });
-  CONFIG.columns.push({ key: formulaKey, label: name, format: format, width: 95, isFormula: true });
+  CONFIG.columns.push({ key: formulaKey, label: name, format: format, width: 85, isFormula: true });
 
   await saveToRepo(CONFIG);
   closeModal('modal-formula');
@@ -724,19 +703,44 @@ function deleteGroup(g) {
   }
 }
 
-// Drag & Drop to Reorder Rows
-let draggedIndex = null;
-function onRowDragStart(e, idx) { draggedIndex = idx; e.dataTransfer.effectAllowed = 'move'; }
+// Row Dragging (Reorder Stocks)
+let draggedRowIndex = null;
+function onRowDragStart(e, idx) { draggedRowIndex = idx; e.dataTransfer.effectAllowed = 'move'; }
 function onRowDragOver(e, rowEl) { e.preventDefault(); rowEl.classList.add('drag-row-over'); }
 function onRowDragLeave(rowEl) { rowEl.classList.remove('drag-row-over'); }
 function onRowDrop(e, targetIdx, rowEl) {
   e.preventDefault();
   rowEl.classList.remove('drag-row-over');
-  if (draggedIndex === null || draggedIndex === targetIdx) return;
+  if (draggedRowIndex === null || draggedRowIndex === targetIdx) return;
 
   const currentList = (CONFIG.activeGroup === "All") ? CONFIG.tickers : CONFIG.groups[CONFIG.activeGroup];
-  const moved = currentList.splice(draggedIndex, 1)[0];
+  const moved = currentList.splice(draggedRowIndex, 1)[0];
   currentList.splice(targetIdx, 0, moved);
+
+  renderTable();
+  saveToRepo(CONFIG);
+}
+
+// Column Dragging (Reorder Columns Left/Right)
+let draggedColIndex = null;
+function onColDragStart(e, idx) {
+  draggedColIndex = idx;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onColDragOver(e, thEl) {
+  e.preventDefault();
+  thEl.classList.add('drag-col-over');
+}
+function onColDragLeave(thEl) {
+  thEl.classList.remove('drag-col-over');
+}
+function onColDrop(e, targetIdx, thEl) {
+  e.preventDefault();
+  thEl.classList.remove('drag-col-over');
+  if (draggedColIndex === null || draggedColIndex === targetIdx) return;
+
+  const movedCol = CONFIG.columns.splice(draggedColIndex, 1)[0];
+  CONFIG.columns.splice(targetIdx, 0, movedCol);
 
   renderTable();
   saveToRepo(CONFIG);
@@ -749,18 +753,23 @@ function renderTable() {
   const tbody = document.getElementById('table-body');
   const search = document.getElementById('search-box').value.trim().toUpperCase();
 
-  let colHtml = '<col style="width: 85px;">';
+  let colHtml = '<col style="width: 80px;">';
   CONFIG.columns.forEach(c => {
-    colHtml += `<col style="width: ${c.width || 105}px;">`;
+    colHtml += `<col style="width: ${c.width || 85}px;">`;
   });
   colHtml += '<col style="width: 45px;">';
   colgroup.innerHTML = colHtml;
 
+  // Header row with Column Drag-to-Reorder
   let headHtml = '<tr><th class="pinned">Symbol</th>';
   CONFIG.columns.forEach((col, idx) => {
     headHtml += `
-      <th>
-        <button class="col-title-btn" onclick="openMetricModal(${idx})">
+      <th draggable="true"
+          ondragstart="onColDragStart(event, ${idx})"
+          ondragover="onColDragOver(event, this)"
+          ondragleave="onColDragLeave(this)"
+          ondrop="onColDrop(event, ${idx}, this)">
+        <button class="col-title-btn" onclick="openMetricModal(${idx})" title="${cleanString(col.label)}">
           ${cleanString(col.label)}
         </button>
         <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
@@ -833,11 +842,12 @@ function deleteStock(sym) {
 
 function initResize(e, colIndex) {
   e.preventDefault();
+  e.stopPropagation();
   const startX = e.clientX;
-  const startWidth = CONFIG.columns[colIndex].width || 105;
+  const startWidth = CONFIG.columns[colIndex].width || 85;
 
   function doDrag(e) {
-    const newWidth = Math.max(50, startWidth + (e.clientX - startX));
+    const newWidth = Math.max(35, startWidth + (e.clientX - startX));
     CONFIG.columns[colIndex].width = newWidth;
     renderTable();
   }
