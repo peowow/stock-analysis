@@ -141,6 +141,12 @@
       "label": "PEG Ratio",
       "format": "ratio",
       "width": 85
+    },
+    {
+      "key": "beta",
+      "label": "Beta",
+      "format": "number",
+      "width": 85
     }
   ],
   "formulas": [
