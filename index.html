@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Stock Analysis v13</title>
+<title>Stock Analysis v14</title>
 <style>
   :root {
     --bg: #221811;
@@ -15,7 +15,7 @@
     --border: #4a3628;
     --primary: #d97706;
     --primary-hover: #b45309;
-    --hover-row: rgba(217, 119, 6, 0.18);
+    --hover-row: rgba(217, 119, 6, 0.20);
     --green: #4ade80;
     --red: #f87171;
     --radius: 6px;
@@ -37,22 +37,24 @@
     padding: 4px 8px; border-radius: var(--radius); font-size: 12px;
   }
   
-  .group-bar { display: flex; align-items: center; gap: 4px; overflow-x: auto; margin-bottom: 8px; padding-bottom: 4px; }
+  .group-bar { display: flex; align-items: center; gap: 6px; overflow-x: auto; margin-bottom: 8px; padding-bottom: 4px; }
   .group-tab {
     padding: 4px 10px; border-radius: var(--radius); background: var(--surface2);
     border: 1px solid var(--border); font-size: 11px; cursor: pointer; display: flex;
-    align-items: center; gap: 6px; white-space: nowrap; user-select: none;
+    align-items: center; gap: 6px; white-space: nowrap; user-select: none; transition: transform 0.1s;
   }
   .group-tab.active { background: var(--primary); color: #fff; font-weight: bold; border-color: var(--primary); }
+  .group-tab.drag-target { border: 2px dashed #fff !important; transform: scale(1.08); background: var(--surface3); }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
   
-  /* Table & Layout */
+  /* Rigid fixed table layout allowing micro-widths */
   .table-container { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; }
-  table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; width: max-content; }
+  table { border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: right; }
   th, td { 
     padding: 5px 6px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); 
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+    max-width: 0;
   }
   th { background: var(--surface2); font-weight: 600; position: relative; user-select: none; cursor: grab; }
   th:active { cursor: grabbing; }
@@ -61,7 +63,6 @@
   td.pinned, th.pinned { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; cursor: default; }
   th.pinned { background: var(--surface2); z-index: 3; }
   
-  /* Visible Row Hover */
   tbody tr:hover { background: var(--hover-row) !important; }
   tbody tr:hover td.pinned { background: #35261c !important; }
 
@@ -80,7 +81,6 @@
 
   .ind-avg { color: var(--text-muted); font-size: 10px; opacity: 0.85; margin-left: 2px; }
 
-  /* Drag Resizer */
   .resizer {
     position: absolute; right: 0; top: 0; height: 100%; width: 8px;
     background: transparent; cursor: col-resize; user-select: none; z-index: 10;
@@ -94,20 +94,16 @@
   .btn-icon:hover { color: var(--red); }
   .btn-add-col { background: var(--surface); border: 1px dashed var(--border); color: var(--primary); font-weight: bold; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-  /* Tooltip for Metric Definitions */
   #metric-tooltip {
     position: fixed; display: none; background: #1a120c; color: var(--text);
     border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px;
     font-size: 11px; line-height: 1.4; max-width: 260px; z-index: 1000; pointer-events: none;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
-  .badge-better {
-    display: inline-block; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; margin-top: 4px;
-  }
+  .badge-better { display: inline-block; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; margin-top: 4px; }
   .badge-high { background: rgba(74, 222, 128, 0.2); color: var(--green); }
   .badge-low { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
 
-  /* Formula Editor Styles */
   .formula-editor-wrap {
     position: relative; width: 100%; height: 50px; border: 1px solid var(--border);
     border-radius: var(--radius); background: var(--surface); overflow: hidden; margin-bottom: 6px;
@@ -171,7 +167,6 @@
   </table>
 </div>
 
-<!-- Floating Tooltip -->
 <div id="metric-tooltip"></div>
 
 <!-- Modal: Metric Selector -->
@@ -265,7 +260,6 @@
 </footer>
 
 <script>
-// Metric Dictionary with Definitions & Preference (Better High vs Better Low)
 const YAHOO_SECTIONS = {
   "Valuation Measures": [
     { key: "marketCap", label: "Market Cap", format: "bignum", desc: "Total market value of all outstanding shares.", better: "Neutral" },
@@ -323,7 +317,6 @@ for (const sec of Object.values(YAHOO_SECTIONS)) {
   }
 }
 
-// Built-in Industry Benchmarks
 const DAMODARAN_BENCHMARKS = {
   "Semiconductors": { trailingPE: 31.4, forwardPE: 24.2, profitMargins: 18.2, operatingMargins: 22.8, grossMargins: 51.5, debtToEquity: 18.2, priceToBook: 4.8, priceToSalesTrailing12Months: 7.2, returnOnEquity: 19.5, returnOnAssets: 11.2 },
   "Auto Manufacturers": { trailingPE: 11.2, forwardPE: 9.8, profitMargins: 5.6, operatingMargins: 7.2, grossMargins: 18.4, debtToEquity: 92.4, priceToBook: 1.1, priceToSalesTrailing12Months: 0.8, returnOnEquity: 12.1, returnOnAssets: 3.5 },
@@ -348,11 +341,11 @@ let CONFIG = {
   activeGroup: "All",
   columns: [
     { key: "currentPrice", label: "Price", format: "currency", width: 85 },
-    { key: "currency", label: "Curr", format: "text", width: 50 },
+    { key: "currency", label: "Curr", format: "text", width: 45 },
     { key: "marketCap", label: "Market Cap", format: "bignum", width: 90 },
     { key: "trailingPE", label: "Trailing P/E", format: "ratio", width: 95 },
     { key: "forwardPE", label: "Forward P/E", format: "ratio", width: 95 },
-    { key: "trailingEps", label: "EPS", format: "number", width: 70 },
+    { key: "trailingEps", label: "EPS", format: "number", width: 65 },
     { key: "profitMargins", label: "Profit Margin", format: "percent", width: 95 }
   ],
   formulas: []
@@ -384,7 +377,6 @@ function getIndustryBenchmark(industryName, key) {
   return ind[key];
 }
 
-// Tooltip logic
 let tooltipTimer = null;
 function showTooltip(e, key) {
   const meta = METRIC_MAP[key];
@@ -700,6 +692,7 @@ function deleteFormula(idx) {
   renderTable();
 }
 
+// Group Tabs System with Drop Support
 function renderGroups() {
   const bar = document.getElementById('group-bar');
   if (!CONFIG.groups) CONFIG.groups = { "All": CONFIG.tickers };
@@ -709,7 +702,11 @@ function renderGroups() {
   for (const g of Object.keys(CONFIG.groups)) {
     const isActive = (CONFIG.activeGroup === g) ? 'active' : '';
     html += `
-      <div class="group-tab ${isActive}" onclick="setActiveGroup('${cleanString(g)}')">
+      <div class="group-tab ${isActive}" 
+           onclick="setActiveGroup('${cleanString(g)}')"
+           ondragover="event.preventDefault(); this.classList.add('drag-target');"
+           ondragleave="this.classList.remove('drag-target');"
+           ondrop="dropStockOnGroup(event, '${cleanString(g)}')">
         <span>${cleanString(g)}</span>
         ${g !== 'All' ? `<span style="font-size:10px; opacity:0.6;" onclick="event.stopPropagation(); deleteGroup('${cleanString(g)}')">✕</span>` : ''}
       </div>`;
@@ -746,9 +743,28 @@ function deleteGroup(g) {
   }
 }
 
-// Row Dragging (Reorder Stocks)
+function dropStockOnGroup(e, groupName) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-target');
+  const sym = e.dataTransfer.getData("text/plain");
+  if (!sym || groupName === "All") return;
+
+  if (!CONFIG.groups[groupName]) CONFIG.groups[groupName] = [];
+  if (!CONFIG.groups[groupName].includes(sym)) {
+    CONFIG.groups[groupName].push(sym);
+    renderGroups();
+    renderTable();
+    saveToRepo(CONFIG);
+  }
+}
+
+// Stock Row Dragging
 let draggedRowIndex = null;
-function onRowDragStart(e, idx) { draggedRowIndex = idx; e.dataTransfer.effectAllowed = 'move'; }
+function onRowDragStart(e, idx, sym) { 
+  draggedRowIndex = idx; 
+  e.dataTransfer.effectAllowed = 'copyMove';
+  e.dataTransfer.setData("text/plain", sym);
+}
 function onRowDragOver(e, rowEl) { e.preventDefault(); rowEl.classList.add('drag-row-over'); }
 function onRowDragLeave(rowEl) { rowEl.classList.remove('drag-row-over'); }
 function onRowDrop(e, targetIdx, rowEl) {
@@ -798,7 +814,7 @@ function initResize(e, colIndex) {
   const startWidth = colElem ? colElem.offsetWidth : (CONFIG.columns[colIndex].width || 80);
 
   function doDrag(e) {
-    const newWidth = Math.max(30, startWidth + (e.clientX - startX));
+    const newWidth = Math.max(25, startWidth + (e.clientX - startX));
     CONFIG.columns[colIndex].width = newWidth;
     if (colElem) colElem.style.width = newWidth + 'px';
   }
@@ -823,7 +839,7 @@ function renderTable() {
 
   let colHtml = '<col id="col-def-pinned" style="width: 75px;">';
   CONFIG.columns.forEach((c, idx) => {
-    colHtml += `<col id="col-def-${idx}" style="width: ${c.width || 85}px;">`;
+    colHtml += `<col id="col-def-${idx}" style="width: ${c.width || 80}px;">`;
   });
   colHtml += '<col style="width: 45px;">';
   colgroup.innerHTML = colHtml;
@@ -872,7 +888,7 @@ function renderTable() {
 
     bodyHtml += `
       <tr draggable="true" 
-          ondragstart="onRowDragStart(event, ${idx})" 
+          ondragstart="onRowDragStart(event, ${idx}, '${r.symbol}')" 
           ondragover="onRowDragOver(event, this)" 
           ondragleave="onRowDragLeave(this)" 
           ondrop="onRowDrop(event, ${idx}, this)">
@@ -884,11 +900,11 @@ function renderTable() {
         </td>`;
     for (const c of CONFIG.columns) {
       let val = r[c.key];
-      let formatted = formatVal(val, c.format, curr);
+      let formatted = formatVal(val, c.format, curr, c.key);
 
       let indVal = getIndustryBenchmark(indName, c.key);
       if (indVal !== undefined && indVal !== null) {
-        let indFormatted = formatVal(indVal, c.format, "");
+        let indFormatted = formatVal(indVal, c.format, "", c.key);
         formatted += ` <span class="ind-avg">/ ${indFormatted}</span>`;
       }
 
@@ -910,11 +926,34 @@ function deleteStock(sym) {
   }
 }
 
-function formatVal(val, format, curr) {
+// Normalizer: Handles inconsistent decimal/whole percentages from Yahoo
+function formatVal(val, format, curr, key) {
   if (val === null || val === undefined || val === "" || Number.isNaN(val)) return "n/a";
-  if (format === "currency") return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (format === "percent") return (Number(val) * (Math.abs(val) < 1 ? 100 : 1)).toFixed(1) + "%";
-  if (format === "ratio" || format === "number") return Number(val).toLocaleString(undefined, {maximumFractionDigits: 1});
+  
+  if (format === "currency") {
+    return (curr ? curr + " " : "") + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+  
+  if (format === "percent") {
+    let n = Number(val);
+    // If it's a yield or payout ratio > 1, check if already in percent form
+    if (key === "dividendYield" || key === "trailingAnnualDividendYield" || key === "payoutRatio") {
+      if (n > 1.0) {
+        // e.g. 2.8% returned as 2.8 or 280% returned as 280
+        if (n > 20.0 && n <= 1000.0 && key.includes("dividendYield")) n = n / 100;
+        return n.toFixed(1) + "%";
+      }
+      return (n * 100).toFixed(1) + "%";
+    }
+    // General margins
+    if (Math.abs(n) < 1.0) n = n * 100;
+    return n.toFixed(1) + "%";
+  }
+  
+  if (format === "ratio" || format === "number") {
+    return Number(val).toLocaleString(undefined, {maximumFractionDigits: 1});
+  }
+  
   if (format === "bignum") {
     const n = Number(val);
     if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + "T";
@@ -922,6 +961,7 @@ function formatVal(val, format, curr) {
     if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
     return n.toLocaleString();
   }
+  
   return cleanString(String(val));
 }
 
