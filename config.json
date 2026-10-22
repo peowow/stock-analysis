@@ -13,7 +13,8 @@
     "AC.TO",
     "MDA.TO",
     "LUN.TO",
-    "CVE.TO"
+    "CVE.TO",
+    "AQN.TO"
   ],
   "groups": {
     "All": [
@@ -28,7 +29,8 @@
       "AC.TO",
       "MDA.TO",
       "LUN.TO",
-      "CVE.TO"
+      "CVE.TO",
+      "AQN.TO"
     ],
     "Energy": [
       "VET.TO"
