@@ -44,13 +44,13 @@
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 95
+      "width": 50
     },
     {
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 106
+      "width": 50
     },
     {
       "key": "returnOnAssets",
@@ -90,7 +90,21 @@
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum"
+    },
+    {
+      "key": "formula_Average_PE",
+      "label": "Average PE",
+      "format": "ratio",
+      "width": 50,
+      "isFormula": true
     }
   ],
-  "formulas": []
+  "formulas": [
+    {
+      "key": "formula_Average_PE",
+      "name": "Average PE",
+      "expr": "=(trailingPE+forwardPE)/2",
+      "format": "ratio"
+    }
+  ]
 }
