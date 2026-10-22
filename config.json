@@ -22,7 +22,8 @@
     "TRLV",
     "GTII.CN",
     "AC.TO",
-    "MDA.TO"
+    "MDA.TO",
+    "HBM.TO"
   ],
   "groups": {
     "All": [
@@ -46,7 +47,8 @@
       "CNQ.TO",
       "PEY.TO",
       "LNG",
-      "CCO.TO"
+      "CCO.TO",
+      "HBM.TO"
     ],
     "Energy": [
       "VET.TO"
