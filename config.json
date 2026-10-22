@@ -170,10 +170,10 @@
       "width": 85
     },
     {
-      "key": "formula_Cash_Debt",
-      "label": "Cash-Debt",
-      "format": "currency",
-      "width": 121,
+      "key": "formula_C_D",
+      "label": "C-D",
+      "format": "bignum",
+      "width": 85,
       "isFormula": true
     }
   ],
@@ -189,6 +189,12 @@
       "name": "Cash-Debt",
       "expr": "=totalCash-totalDebt",
       "format": "currency"
+    },
+    {
+      "key": "formula_C_D",
+      "name": "C-D",
+      "expr": "=totalCash-totalDebt",
+      "format": "bignum"
     }
   ]
 }
