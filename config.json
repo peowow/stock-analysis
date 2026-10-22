@@ -21,7 +21,8 @@
     "BYDDY",
     "GOOG",
     "GTII.CN",
-    "LNG"
+    "LNG",
+    "CCO.TO"
   ],
   "groups": {
     "All": [
@@ -44,7 +45,8 @@
       "GTII.CN",
       "CNQ.TO",
       "PEY.TO",
-      "LNG"
+      "LNG",
+      "CCO.TO"
     ],
     "Energy": [
       "VET.TO"
