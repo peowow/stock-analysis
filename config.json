@@ -115,7 +115,8 @@
     {
       "key": "freeCashflow",
       "label": "Free CF",
-      "format": "bignum"
+      "format": "bignum",
+      "width": 70
     },
     {
       "key": "targetMeanPrice",
