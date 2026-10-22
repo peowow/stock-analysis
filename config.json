@@ -143,9 +143,15 @@
       "width": 85
     },
     {
-      "key": "beta",
-      "label": "Beta",
-      "format": "number",
+      "key": "grossMargins",
+      "label": "Gross Margin",
+      "format": "percent",
+      "width": 85
+    },
+    {
+      "key": "operatingCashflow",
+      "label": "Operating CF",
+      "format": "bignum",
       "width": 85
     }
   ],
