@@ -1,10 +1,13 @@
 {
   "tickers": [
     "VET.TO",
+    "VG",
+    "CVE.TO",
+    "KEY.TO",
+    "CNQ.TO",
     "AMD",
     "TM",
     "NVDA",
-    "VG",
     "CLS",
     "CSU.TO",
     "FM.TO",
@@ -13,13 +16,11 @@
     "AC.TO",
     "MDA.TO",
     "LUN.TO",
-    "CVE.TO",
     "AQN.TO",
     "BYDDY",
     "GOOG",
-    "KEY.TO",
     "GTII.CN",
-    "CNQ.TO"
+    "PEY.TO"
   ],
   "groups": {
     "All": [
@@ -40,7 +41,8 @@
       "GOOG",
       "KEY.TO",
       "GTII.CN",
-      "CNQ.TO"
+      "CNQ.TO",
+      "PEY.TO"
     ],
     "Energy": [
       "VET.TO"
