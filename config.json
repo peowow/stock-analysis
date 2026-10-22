@@ -88,10 +88,22 @@
       "width": 50
     },
     {
+      "key": "operatingMargins",
+      "label": "Operating Margin",
+      "format": "percent",
+      "width": 35
+    },
+    {
       "key": "payoutRatio",
       "label": "Payout Ratio",
       "format": "percent",
       "width": 37
+    },
+    {
+      "key": "totalCash",
+      "label": "Total Cash",
+      "format": "bignum",
+      "width": 35
     },
     {
       "key": "totalDebt",
@@ -108,12 +120,6 @@
       "label": "Target Price",
       "format": "currency",
       "width": 35
-    },
-    {
-      "key": "totalCash",
-      "label": "Total Cash",
-      "format": "bignum",
-      "width": 90
     }
   ],
   "formulas": [
