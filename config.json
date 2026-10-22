@@ -95,7 +95,7 @@
       "key": "returnOnAssets",
       "label": "Return on Assets (ROA)",
       "format": "percent",
-      "width": 125
+      "width": 30
     },
     {
       "key": "dividendYield",
@@ -113,19 +113,19 @@
       "key": "operatingMargins",
       "label": "Operating Margin",
       "format": "percent",
-      "width": 77
+      "width": 108
     },
     {
       "key": "profitMargins",
       "label": "Profit Margin",
       "format": "percent",
-      "width": 50
+      "width": 109
     },
     {
       "key": "totalCash",
       "label": "Total Cash",
       "format": "bignum",
-      "width": 35
+      "width": 78
     },
     {
       "key": "totalDebt",
@@ -136,7 +136,7 @@
       "key": "debtToEquity",
       "label": "Debt/Equity",
       "format": "ratio",
-      "width": 30
+      "width": 85
     },
     {
       "key": "freeCashflow",
@@ -148,19 +148,19 @@
       "key": "operatingCashflow",
       "label": "Operating CF",
       "format": "bignum",
-      "width": 85
+      "width": 92
     },
     {
       "key": "pegRatio",
       "label": "PEG Ratio",
       "format": "ratio",
-      "width": 85
+      "width": 75
     },
     {
       "key": "grossMargins",
       "label": "Gross Margin",
       "format": "percent",
-      "width": 85
+      "width": 102
     }
   ],
   "formulas": [
