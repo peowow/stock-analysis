@@ -5,6 +5,7 @@
     "CVE.TO",
     "KEY.TO",
     "CNQ.TO",
+    "PEY.TO",
     "AMD",
     "TM",
     "NVDA",
@@ -19,8 +20,7 @@
     "AQN.TO",
     "BYDDY",
     "GOOG",
-    "GTII.CN",
-    "PEY.TO"
+    "GTII.CN"
   ],
   "groups": {
     "All": [
@@ -59,6 +59,12 @@
       "format": "currency"
     },
     {
+      "key": "targetMeanPrice",
+      "label": "Target Price",
+      "format": "currency",
+      "width": 35
+    },
+    {
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
@@ -90,6 +96,12 @@
       "width": 35
     },
     {
+      "key": "payoutRatio",
+      "label": "Payout Ratio",
+      "format": "percent",
+      "width": 61
+    },
+    {
       "key": "operatingMargins",
       "label": "Operating Margin",
       "format": "percent",
@@ -100,12 +112,6 @@
       "label": "Profit Margin",
       "format": "percent",
       "width": 50
-    },
-    {
-      "key": "payoutRatio",
-      "label": "Payout Ratio",
-      "format": "percent",
-      "width": 37
     },
     {
       "key": "totalCash",
@@ -119,16 +125,16 @@
       "format": "bignum"
     },
     {
+      "key": "debtToEquity",
+      "label": "Debt/Equity",
+      "format": "ratio",
+      "width": 30
+    },
+    {
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum",
       "width": 70
-    },
-    {
-      "key": "targetMeanPrice",
-      "label": "Target Price",
-      "format": "currency",
-      "width": 35
     },
     {
       "key": "pegRatio",
