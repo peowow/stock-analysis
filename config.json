@@ -56,7 +56,7 @@
       "key": "returnOnAssets",
       "label": "Return on Assets (ROA)",
       "format": "percent",
-      "width": 50
+      "width": 35
     },
     {
       "key": "dividendYield",
