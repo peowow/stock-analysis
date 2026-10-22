@@ -12,7 +12,8 @@
     "FSLR",
     "AC.TO",
     "MDA.TO",
-    "LUN.TO"
+    "LUN.TO",
+    "CVE.TO"
   ],
   "groups": {
     "All": [
@@ -26,7 +27,8 @@
       "FSLR",
       "AC.TO",
       "MDA.TO",
-      "LUN.TO"
+      "LUN.TO",
+      "CVE.TO"
     ],
     "Energy": [
       "VET.TO"
