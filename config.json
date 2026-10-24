@@ -96,7 +96,7 @@
       "key": "returnOnAssets",
       "label": "Return on Assets (ROA)",
       "format": "percent",
-      "width": 127
+      "width": 126
     },
     {
       "key": "dividendYield",
@@ -175,6 +175,12 @@
       "format": "bignum",
       "width": 73,
       "isFormula": true
+    },
+    {
+      "key": "pegRatio",
+      "label": "PEG Ratio",
+      "format": "ratio",
+      "width": 85
     }
   ],
   "formulas": [
