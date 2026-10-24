@@ -114,7 +114,7 @@
       "key": "operatingMargins",
       "label": "Operating Margin",
       "format": "percent",
-      "width": 108
+      "width": 121
     },
     {
       "key": "profitMargins",
@@ -173,7 +173,7 @@
       "key": "formula_C_D",
       "label": "C-D",
       "format": "bignum",
-      "width": 85,
+      "width": 73,
       "isFormula": true
     }
   ],
