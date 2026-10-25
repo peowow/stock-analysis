@@ -25,7 +25,9 @@
     "AC.TO",
     "MDA.TO",
     "TSM",
-    "SPCX"
+    "SPCX",
+    "RKLB",
+    "ECHO"
   ],
   "groups": {
     "All": [
@@ -52,7 +54,9 @@
       "CCO.TO",
       "HBM.TO",
       "TSM",
-      "SPCX"
+      "SPCX",
+      "RKLB",
+      "ECHO"
     ],
     "Energy": [
       "VET.TO"
