@@ -24,7 +24,8 @@
     "GTII.CN",
     "AC.TO",
     "MDA.TO",
-    "TSM"
+    "TSM",
+    "SPCX"
   ],
   "groups": {
     "All": [
@@ -50,7 +51,8 @@
       "LNG",
       "CCO.TO",
       "HBM.TO",
-      "TSM"
+      "TSM",
+      "SPCX"
     ],
     "Energy": [
       "VET.TO"
@@ -180,6 +182,12 @@
       "key": "pegRatio",
       "label": "PEG Ratio",
       "format": "ratio",
+      "width": 85
+    },
+    {
+      "key": "returnOnEquity",
+      "label": "Return on Equity (ROE)",
+      "format": "percent",
       "width": 85
     }
   ],
