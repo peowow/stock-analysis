@@ -89,7 +89,7 @@
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 90
+      "width": 96
     },
     {
       "key": "formula_Average_PE",
@@ -132,12 +132,13 @@
       "key": "totalCash",
       "label": "Total Cash",
       "format": "bignum",
-      "width": 78
+      "width": 87
     },
     {
       "key": "totalDebt",
       "label": "Total Debt",
-      "format": "bignum"
+      "format": "bignum",
+      "width": 83
     },
     {
       "key": "debtToEquity",
