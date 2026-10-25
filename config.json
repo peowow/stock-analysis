@@ -141,6 +141,13 @@
       "width": 83
     },
     {
+      "key": "formula_C_D",
+      "label": "C-D",
+      "format": "bignum",
+      "width": 73,
+      "isFormula": true
+    },
+    {
       "key": "debtToEquity",
       "label": "Debt/Equity",
       "format": "ratio",
@@ -168,20 +175,13 @@
       "key": "grossMargins",
       "label": "Gross Margin",
       "format": "percent",
-      "width": 102
+      "width": 120
     },
     {
       "key": "enterpriseValue",
       "label": "Enterprise Value",
       "format": "bignum",
       "width": 85
-    },
-    {
-      "key": "formula_C_D",
-      "label": "C-D",
-      "format": "bignum",
-      "width": 73,
-      "isFormula": true
     },
     {
       "key": "pegRatio",
@@ -193,7 +193,7 @@
       "key": "returnOnEquity",
       "label": "Return on Equity (ROE)",
       "format": "percent",
-      "width": 85
+      "width": 125
     }
   ],
   "formulas": [
