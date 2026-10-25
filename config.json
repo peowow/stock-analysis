@@ -23,8 +23,8 @@
     "TRLV",
     "GTII.CN",
     "AC.TO",
-    "MDA.TO",
     "TSM",
+    "MDA.TO",
     "SPCX",
     "RKLB",
     "ECHO"
@@ -83,7 +83,7 @@
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 81
+      "width": 87
     },
     {
       "key": "forwardPE",
