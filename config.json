@@ -79,7 +79,7 @@
       "key": "targetMeanPrice",
       "label": "Target Price",
       "format": "currency",
-      "width": 99
+      "width": 110
     },
     {
       "key": "trailingPE",
