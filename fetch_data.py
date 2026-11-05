@@ -5,7 +5,6 @@ import time
 import math
 import urllib.request
 import csv
-import io
 from datetime import datetime, timezone
 
 try:
@@ -18,7 +17,6 @@ CONFIG_FILE = "config.json"
 DATA_DIR = "data"
 OUTPUT_DATA = os.path.join(DATA_DIR, "data.json")
 
-# Map common Yahoo industry names to Damodaran's industry classification
 DAMODARAN_MAP = {
     "Semiconductors": "Semiconductor",
     "Semiconductor Equipment & Materials": "Semiconductor Equip",
@@ -49,58 +47,43 @@ def clean_val(val):
     return None
 
 def fetch_damodaran_benchmarks():
-    """Download Damodaran NYU Stern datasets for Valuation and Margins"""
     benchmarks = {}
-    print("Fetching Damodaran NYU Stern industry benchmarks...")
-
-    # Valuation dataset (P/E, Price/Book, EV/EBITDA, EV/Sales)
     url_pedata = "https://pages.stern.nyu.edu/~adamodar/pc/datasets/pedata.csv"
-    # Margins dataset (Gross, Operating, Net margins)
     url_margin = "https://pages.stern.nyu.edu/~adamodar/pc/datasets/margin.csv"
-
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     def parse_csv_stream(url):
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 lines = [line.decode('latin-1') for line in resp.readlines()]
                 return list(csv.reader(lines))
-        except Exception as e:
-            print(f"Warning: Could not fetch {url}: {e}")
+        except Exception:
             return []
 
-    # Parse P/E & Valuation
-    rows_pe = parse_csv_stream(url_pedata)
-    for r in rows_pe:
+    for r in parse_csv_stream(url_pedata):
         if len(r) > 8 and r[0].strip() and r[0].strip() != "Industry Name":
-            ind_name = r[0].strip()
             def safe_float(idx):
                 try: return float(r[idx].replace(',', '').replace('%', '').strip())
                 except: return None
-
-            benchmarks[ind_name] = {
+            benchmarks[r[0].strip()] = {
                 "trailingPE": safe_float(4),
                 "forwardPE": safe_float(5),
                 "priceToBook": safe_float(6),
                 "enterpriseToEbitda": safe_float(8)
             }
 
-    # Parse Margins
-    rows_m = parse_csv_stream(url_margin)
-    for r in rows_m:
+    for r in parse_csv_stream(url_margin):
         if len(r) > 6 and r[0].strip():
-            ind_name = r[0].strip()
+            ind = r[0].strip()
             def safe_float_pct(idx):
                 try: return float(r[idx].replace(',', '').replace('%', '').strip())
                 except: return None
+            if ind in benchmarks:
+                benchmarks[ind]["grossMargins"] = safe_float_pct(2)
+                benchmarks[ind]["operatingMargins"] = safe_float_pct(4)
+                benchmarks[ind]["profitMargins"] = safe_float_pct(5)
 
-            if ind_name in benchmarks:
-                benchmarks[ind_name]["grossMargins"] = safe_float_pct(2)
-                benchmarks[ind_name]["operatingMargins"] = safe_float_pct(4)
-                benchmarks[ind_name]["profitMargins"] = safe_float_pct(5)
-
-    print(f"Loaded benchmarks for {len(benchmarks)} Damodaran industries.")
     return benchmarks
 
 def fetch_ticker_data(ticker_symbol):
@@ -114,7 +97,7 @@ def fetch_ticker_data(ticker_symbol):
             t = yf.Ticker(ticker_symbol)
             info = t.info
             if not info or len(info) < 5:
-                raise ValueError("Incomplete info payload from Yahoo")
+                raise ValueError("Incomplete info payload")
             data = {"info": info}
             break
         except Exception as e:
@@ -134,8 +117,44 @@ def fetch_ticker_data(ticker_symbol):
             if clean is not None:
                 scalars[k] = clean
 
-    if "currentPrice" not in scalars and "regularMarketPrice" in scalars:
-        scalars["currentPrice"] = scalars["regularMarketPrice"]
+    # 1. SMART ACTIVE PRICING (Premarket / After-hours handling)
+    market_state = str(info.get("marketState", "")).upper()
+    reg_price = clean_val(info.get("regularMarketPrice")) or clean_val(info.get("currentPrice"))
+    pre_price = clean_val(info.get("preMarketPrice"))
+    post_price = clean_val(info.get("postMarketPrice"))
+
+    active_price = reg_price
+    if market_state in ["PRE", "PREPRE"] and pre_price:
+        active_price = pre_price
+    elif market_state in ["POST", "POSTPOST"] and post_price:
+        active_price = post_price
+
+    scalars["currentPrice"] = active_price
+    scalars["regularMarketPrice"] = reg_price
+    if pre_price: scalars["preMarketPrice"] = pre_price
+    if post_price: scalars["postMarketPrice"] = post_price
+    scalars["marketState"] = market_state
+
+    # 2. ACCURATE DIVIDEND YIELD CALCULATION (Immune to decimal mismatch)
+    div_rate = clean_val(info.get("dividendRate"))
+    if div_rate and active_price and active_price > 0:
+        scalars["dividendYield"] = round(div_rate / active_price, 6)
+    elif "dividendYield" in info:
+        raw_yield = clean_val(info["dividendYield"])
+        if raw_yield is not None:
+            # If Yahoo supplied e.g. 2.8 instead of 0.028, normalize it
+            if raw_yield > 0.5:
+                raw_yield = raw_yield / 100.0
+            scalars["dividendYield"] = raw_yield
+
+    # 3. ACCURATE PAYOUT RATIO CALCULATION
+    if "payoutRatio" in info:
+        raw_payout = clean_val(info["payoutRatio"])
+        if raw_payout is not None:
+            # If Yahoo supplied e.g. 18.0 instead of 0.18
+            if raw_payout > 1.0 and raw_payout <= 100.0:
+                raw_payout = raw_payout / 100.0
+            scalars["payoutRatio"] = raw_payout
 
     return scalars, None
 
@@ -163,7 +182,6 @@ def main():
         sym_clean = sym.strip().upper()
         scalars, err = fetch_ticker_data(sym_clean)
         if scalars:
-            # Map industry benchmarks
             raw_ind = scalars.get("industry", "")
             mapped_ind = DAMODARAN_MAP.get(raw_ind, raw_ind)
             scalars["_industryBenchmark"] = damodaran.get(mapped_ind, {})
@@ -171,11 +189,11 @@ def main():
 
             all_data[sym_clean] = scalars
             success_count += 1
-            print(f"-> SUCCESS: {sym_clean} ({raw_ind} -> {mapped_ind})")
+            print(f"-> SUCCESS: {sym_clean} [Price: {scalars.get('currentPrice')} | DivYield: {scalars.get('dividendYield')}]")
         else:
             errors[sym_clean] = err
             print(f"-> FAIL: {sym_clean} - {err}")
-        time.sleep(1.0)
+        time.sleep(0.8)
 
     output = {
         "updated": datetime.now(timezone.utc).isoformat(),
