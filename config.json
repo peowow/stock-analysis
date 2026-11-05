@@ -73,7 +73,7 @@
       "key": "currentPrice",
       "label": "Price",
       "format": "currency",
-      "width": 99
+      "width": 106
     },
     {
       "key": "targetMeanPrice",
