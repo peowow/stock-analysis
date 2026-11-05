@@ -73,25 +73,25 @@
       "key": "currentPrice",
       "label": "Price",
       "format": "currency",
-      "width": 106
+      "width": 124
     },
     {
       "key": "targetMeanPrice",
       "label": "Target Price",
       "format": "currency",
-      "width": 110
+      "width": 115
     },
     {
       "key": "trailingPE",
       "label": "Trailing P/E",
       "format": "ratio",
-      "width": 87
+      "width": 106
     },
     {
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 96
+      "width": 98
     },
     {
       "key": "formula_Average_PE",
@@ -122,13 +122,13 @@
       "key": "operatingMargins",
       "label": "Operating Margin",
       "format": "percent",
-      "width": 121
+      "width": 124
     },
     {
       "key": "profitMargins",
       "label": "Profit Margin",
       "format": "percent",
-      "width": 109
+      "width": 132
     },
     {
       "key": "totalCash",
@@ -153,13 +153,13 @@
       "key": "debtToEquity",
       "label": "Debt/Equity",
       "format": "ratio",
-      "width": 85
+      "width": 97
     },
     {
       "key": "freeCashflow",
       "label": "Free CF",
       "format": "bignum",
-      "width": 70
+      "width": 86
     },
     {
       "key": "operatingCashflow",
