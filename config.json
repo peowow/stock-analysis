@@ -91,7 +91,7 @@
       "key": "forwardPE",
       "label": "Forward P/E",
       "format": "ratio",
-      "width": 98
+      "width": 101
     },
     {
       "key": "formula_Average_PE",
